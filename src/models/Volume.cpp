@@ -1,5 +1,5 @@
 #include "Volume.h"
-
+extern "C" void called_by_main();
 #define TRUNCATION 0.06f
 
 Volume::Volume() {}
@@ -199,6 +199,8 @@ float Volume::trilinearInterpolation(const Vector3f& p) {
 
 // using given frame calculate TSDF values for all voxels in the grid
 void Volume::integrate(Frame frame) {
+    called_by_main();
+    return;
 	const Matrix4f worldToCamera = frame.getExtrinsicMatrix();
 	const Matrix4f cameraToWorld = worldToCamera.inverse();
 	const Matrix3f intrinsic = frame.getIntrinsicMatrix();

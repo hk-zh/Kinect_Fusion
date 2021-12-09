@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.6)
 set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE TYPE INTERNAL FORCE)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_STANDARD 14)
 
 project(kinect_fusion)
 
@@ -19,6 +20,7 @@ set(ICP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/icp CACHE PATH "Path to icp folder")
 set(RAYCASTER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/raycaster CACHE PATH "Path to RayCaster folder")
 set(MODELS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/models CACHE PATH "Path to models folder")
 set(LIBRARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs CACHE PATH "Path to lib folder")
+set(CUDA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda_boost CACHE PATH "Path to cuda booster source folder")
 set(Eigen3_INCLUDE_DIR ${LIBRARY_DIR}/eigen/ CACHE PATH "Path to Eigen source folder")
 
 
@@ -34,6 +36,8 @@ if(MACOSX)
     set(FreeImage_LIBRARY_DIR "/usr/local/Cellar/freeimage/3.18.0/lib")
     set(Eigen3_INCLUDE_DIR /usr/local/Cellar/eigen/3.3.9/include/eigen3)
 endif(MACOSX)
+set(Eigen3_DIR ${LIBRARY_DIR}/Eigen/share/eigen3/cmake CACHE PATH "Path to installed Eigen")
+find_package(Eigen3 REQUIRED)
 
 message(${Eigen3_INCLUDE_DIR})
 
@@ -69,12 +73,24 @@ set(SOURCES
     ${MODELS_DIR}/Volume.cpp
     ${ICP_DIR}/ICP.cpp
     ${RAYCASTER_DIR}/RayCaster.cpp
-    ${RAYCASTER_DIR}/Ray.cpp)
+    ${RAYCASTER_DIR}/Ray.cpp
+    )
+
+add_library(kernels
+        ${CUDA_DIR}/volume.cu
+        )
+enable_language(CUDA)
+
+
+target_compile_features(kernels PUBLIC cxx_std_11)
+set_target_properties(kernels
+        PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+target_link_libraries(kernels)
 
 link_directories(${FreeImage_LIBRARY_DIR})
 add_executable(kinect_fusion ${SOURCES} ${HEADERS})
 target_include_directories(kinect_fusion PUBLIC ${Eigen3_INCLUDE_DIR} ${FreeImage_INCLUDE_DIR} ${INCLUDE})
-target_link_libraries(kinect_fusion general freeimage)
+target_link_libraries(kinect_fusion general freeimage kernels)
 
 # On Windows copy dll to executable folder
 if(WIN32)
