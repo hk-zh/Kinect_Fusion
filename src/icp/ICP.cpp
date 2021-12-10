@@ -17,25 +17,25 @@ Matrix4f ICP::estimatePose(
 ) {
 
   for (size_t iteration = 0; iteration < iterationsNum; iteration++) {
-    const std::vector<std::pair<size_t, size_t>> correspondenceIds = findIndicesOfCorrespondingPoints(estimatedPose);
+    std::vector<std::pair<size_t, size_t>> correspondenceIds = findIndicesOfCorrespondingPoints(estimatedPose);
 
     std::cout << "# corresponding points: " << correspondenceIds.size()
         << std::endl;
     std::cout << "# total number of points: "
         << curFrame.getVertexMap().size() << std::endl;
 
-    int nPoints = correspondenceIds.size();
+    int nPoints = (int) correspondenceIds.size();
     Eigen::Matrix3f rotationEP = estimatedPose.block(0, 0, 3, 3);
     Eigen::Vector3f translationEP = estimatedPose.block(0, 3, 3, 1);
 
     MatrixXf A = MatrixXf::Zero(nPoints, 6);
     VectorXf b = VectorXf::Zero(nPoints);
 
-    for (size_t i = 0; i < nPoints; i++) {
-      auto pair = correspondenceIds[i];
-      const auto &x = rotationEP * curFrame.getVertexGlobal(pair.second) + translationEP;
-      const auto &y = prevFrame.getVertexGlobal(pair.first);
-      const auto &n = prevFrame.getNormalGlobal(pair.first);
+    for (int i = 0; i < nPoints; i++) {
+        std::pair<size_t, size_t> pair = correspondenceIds[i];
+        Vector3f x = rotationEP * curFrame.getVertexGlobal(pair.second) + translationEP;
+        Vector3f y = prevFrame.getVertexGlobal(pair.first);
+        Vector3f n = prevFrame.getNormalGlobal(pair.first);
 
       A(i, 0) = n(2) * x(1) - n(1) * x(2);
       A(i, 1) = n(0) * x(2) - n(2) * x(0);
@@ -48,9 +48,10 @@ Matrix4f ICP::estimatePose(
     }
 
     VectorXf x(6);
-    x = A.bdcSvd(ComputeThinU | ComputeThinV).solve(b);
+    JacobiSVD<MatrixXf> svd(A, ComputeThinU | ComputeThinV);
+    x = svd.solve(b);
 
-    const float alpha = x(0), beta = x(1), gamma = x(2);
+    float alpha = x(0), beta = x(1), gamma = x(2);
     Matrix3f rotation =
         AngleAxisf(alpha, Vector3f::UnitX()).toRotationMatrix() *
         AngleAxisf(beta, Vector3f::UnitY()).toRotationMatrix() *
@@ -74,7 +75,7 @@ Matrix4f ICP::estimatePose(
 // points into consideration without normals Advanced version: Euclidean
 // distance between points + difference in normal angles
 std::vector<std::pair<size_t, size_t>> ICP::findIndicesOfCorrespondingPoints(
-    const Eigen::Matrix4f &estPose) {
+    Eigen::Matrix4f &estPose) {
   Eigen::Matrix4f estimatedPose = estPose;
   std::vector<std::pair<size_t, size_t>> indicesOfCorrespondingPoints;
 
@@ -86,13 +87,13 @@ std::vector<std::pair<size_t, size_t>> ICP::findIndicesOfCorrespondingPoints(
   std::vector<Eigen::Vector3f> curFrameNormalMapGlobal =
       curFrame.getNormalMapGlobal();
 
-  const auto rotation = estimatedPose.block(0, 0, 3, 3);
-  const auto translation = estimatedPose.block(0, 3, 3, 1);
+  Eigen::Matrix3f rotation = estimatedPose.block(0, 0, 3, 3);
+  Eigen::Vector3f translation = estimatedPose.block(0, 3, 3, 1);
 
-  const auto estimatedPoseInv = estimatedPose.inverse();
+  Eigen::Matrix4f estimatedPoseInv = estimatedPose.inverse();
 
-  const auto rotationInv = estimatedPoseInv.block(0, 0, 3, 3);
-  const auto translationInv = estimatedPoseInv.block(0, 3, 3, 1);
+  Eigen::Matrix3f rotationInv = estimatedPoseInv.block(0, 0, 3, 3);
+  Eigen::Vector3f  translationInv = estimatedPoseInv.block(0, 3, 3, 1);
 
   // GPU implementation: use a separate thread for every run of the for
   // loop
@@ -108,11 +109,11 @@ std::vector<std::pair<size_t, size_t>> ICP::findIndicesOfCorrespondingPoints(
 
       // project point from global camera system into camera system of
       // the current frame
-      const Eigen::Vector3f prevPointCurFrame =
+      Eigen::Vector3f prevPointCurFrame =
           curFrame.projectPointIntoFrame(prevPointCurCamera);
       // project point from camera system of the previous frame onto the
       // image plane of the current frame
-      const Eigen::Vector2i prevPointImgCoordCurFrame =
+      Eigen::Vector2i prevPointImgCoordCurFrame =
           curFrame.projectOntoImgPlane(prevPointCurFrame);
 
       if (curFrame.containsImgPoint(prevPointImgCoordCurFrame)) {
@@ -121,14 +122,7 @@ std::vector<std::pair<size_t, size_t>> ICP::findIndicesOfCorrespondingPoints(
             prevPointImgCoordCurFrame[0];
 
         Eigen::Vector3f curFramePointGlobal = rotation * curFrameVertexMapGlobal[curIdx] + translation;
-
         Eigen::Vector3f curFrameNormalGlobal = rotation * curFrameNormalMapGlobal[curIdx];
-//        if (curFramePointGlobal.allFinite()) {
-//            std:: cout << "distance: " <<  (curFramePointGlobal - prevPointGlobal).norm()  << std:: endl;
-//        }
-//        if (curFrameNormalGlobal.allFinite()) {
-//            std:: cout << "angle: " <<  (curFramePointGlobal - prevPointGlobal).norm()  << std:: endl;
-//        }
 
         if (curFramePointGlobal.allFinite() &&
             (curFramePointGlobal - prevPointGlobal).norm() <
@@ -136,7 +130,7 @@ std::vector<std::pair<size_t, size_t>> ICP::findIndicesOfCorrespondingPoints(
             curFrameNormalGlobal.allFinite() &&
             (std::abs(curFrameNormalGlobal.dot(prevNormalGlobal)) / curFrameNormalGlobal.norm() / prevNormalGlobal.norm() <
              normalThreshold)) {
-          indicesOfCorrespondingPoints.push_back(std::make_pair(idx, curIdx));
+          indicesOfCorrespondingPoints.emplace_back(idx, curIdx);
         }
       }
     }

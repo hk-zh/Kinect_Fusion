@@ -1,10 +1,8 @@
 #include <array>
-#include <fstream>
 #include <iostream>
 
 #include "ICP.h"
 #include "RayCaster.h"
-#include "Ray.h"
 #include "Frame.h"
 #include "Volume.h"
 #include "VirtualSensor.h"
@@ -12,7 +10,7 @@
 #include "SimpleMesh.h"
 #include "MarchingCubes.h"
 
-#define DISTANCE_THRESHOLD 0.1
+#define DISTANCE_THRESHOLD 0.05
 #define EDGE_THRESHOLD 0.02
 #define ANGLE_THRESHOLD 1.05
 #define MAX_FRAME_NUM 800
@@ -23,9 +21,9 @@
 
 int main() {
   // Make sure this path points to the data folder
-    std::string filenameIn = "../data/rgbd_dataset_freiburg1_360/";
-    std::string filenameBaseOut = std::string("../output_freiburg1_360/mesh_");
-    std::string filenameBaseOutMC = std::string("../output_freiburg1_360/MCmesh_");
+    std::string filenameIn = "../data/rgbd_dataset_freiburg1_xyz/";
+    std::string filenameBaseOut = std::string("../output/mesh_");
+    std::string filenameBaseOutMC = std::string("../output/MCmesh_");
 
   // load video
   std::cout << "Initialize virtual sensor..." << std::endl;
@@ -52,8 +50,8 @@ int main() {
       Matrix4f depthExtrinsics = sensor.GetDepthExtrinsics();
       Matrix4f trajectory = sensor.GetTrajectory();
       Matrix4f trajectoryInv = sensor.GetTrajectory().inverse();
-      int depthHeight = sensor.GetDepthImageHeight();
-      int depthWidth = sensor.GetDepthImageWidth();
+      int depthHeight = (int) sensor.GetDepthImageHeight();
+      int depthWidth = (int) sensor.GetDepthImageWidth();
 
       //std::cout << trajectory;
 
@@ -73,8 +71,8 @@ int main() {
           //std::cout << curFrame.getVertex(302992) << std::endl;
 
           ICP icp(prevFrame, curFrame, DISTANCE_THRESHOLD, ANGLE_THRESHOLD);
-          // std::vector<std::pair<size_t, size_t>> correspondenceIds(
-          //     {{302990, 302990}});
+//          std::vector<std::pair<size_t, size_t>> correspondenceIds(
+//               {{302990, 302990}});
 
           pose = icp.estimatePose(pose, ICP_ITERATIONS);
           std::cout << pose << std::endl;
@@ -107,10 +105,10 @@ int main() {
               
               std::unordered_map<Vector3i, bool, matrix_hash<Vector3i>> visitedVoxels = volume.getVisitedVoxels();
 
-              for (auto it = visitedVoxels.begin(); it != visitedVoxels.end(); it++)
+              for (auto & visitedVoxel : visitedVoxels)
               {
                   //std::cout << it->first << std::endl;
-                  Vector3i voxelCoords = it->first;
+                  Vector3i voxelCoords = visitedVoxel.first;
                   ProcessVolumeCell(&volume, voxelCoords[0], voxelCoords[1], voxelCoords[2], 0.00f, &mesh);
               }
               /*

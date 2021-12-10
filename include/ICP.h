@@ -14,15 +14,15 @@
 
 class ICP {
  public:
-  ICP(Frame &_prevFrame, Frame &_curFrame, const double distanceThreshold,
-      const double normalThreshold);
+  ICP(Frame &_prevFrame, Frame &_curFrame, double distanceThreshold,
+      double normalThreshold);
 
   Matrix4f estimatePose(
       Eigen::Matrix4f& estimatedPose,
       int iterationsNum = 10 );
 
   std::vector<std::pair<size_t, size_t>> findIndicesOfCorrespondingPoints(
-      const Eigen::Matrix4f &estimatedPose);
+      Eigen::Matrix4f &estimatedPose);
 
  private:
   Frame &prevFrame;
