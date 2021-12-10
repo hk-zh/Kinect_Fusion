@@ -21,7 +21,7 @@
 
 int main() {
   // Make sure this path points to the data folder
-    std::string filenameIn = "../data/rgbd_dataset_freiburg1_xyz/";
+    std::string filenameIn = "../data/rgbd_dataset_freiburg1_360/";
     std::string filenameBaseOut = std::string("../output/mesh_");
     std::string filenameBaseOutMC = std::string("../output/MCmesh_");
 

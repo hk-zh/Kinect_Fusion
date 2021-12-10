@@ -4,6 +4,8 @@
 #include <memory>
 #include <utility>
 
+#define MINIMUM_ICP_CORRESPONDING_POINTS 1000
+
 ICP::ICP(Frame &_prevFrame, Frame &_curFrame, const double distanceThreshold,
          const double normalThreshold)
     : prevFrame(_prevFrame),
@@ -18,7 +20,9 @@ Matrix4f ICP::estimatePose(
 
   for (size_t iteration = 0; iteration < iterationsNum; iteration++) {
     std::vector<std::pair<size_t, size_t>> correspondenceIds = findIndicesOfCorrespondingPoints(estimatedPose);
-
+    if (correspondenceIds.size() < MINIMUM_ICP_CORRESPONDING_POINTS) {
+        break;
+    }
     std::cout << "# corresponding points: " << correspondenceIds.size()
         << std::endl;
     std::cout << "# total number of points: "
@@ -120,6 +124,8 @@ std::vector<std::pair<size_t, size_t>> ICP::findIndicesOfCorrespondingPoints(
         size_t curIdx =
             prevPointImgCoordCurFrame[1] * curFrame.getFrameWidth() +
             prevPointImgCoordCurFrame[0];
+        //std::cout << "rotation" << rotation << std::endl;
+        //std::cout << "Translation" << translation << std::endl;
 
         Eigen::Vector3f curFramePointGlobal = rotation * curFrameVertexMapGlobal[curIdx] + translation;
         Eigen::Vector3f curFrameNormalGlobal = rotation * curFrameNormalMapGlobal[curIdx];
