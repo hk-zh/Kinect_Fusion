@@ -37,7 +37,7 @@ public:
 		// read tracking
 		if (!ReadTrajectoryFile(datasetDir + "groundtruth.txt", m_trajectory, m_trajectoryTimeStamps)) return false;
 
-		if (m_filenameDepthImages.size() != m_filenameColorImages.size()) return false;
+		//if (m_filenameDepthImages.size() != m_filenameColorImages.size()) return false;
 
 		// image resolutions
 		m_colorImageWidth = 640;
@@ -73,7 +73,7 @@ public:
 
 		if ((unsigned int)m_currentIdx >= (unsigned int)m_filenameColorImages.size()) return false;
 
-		std::cout << "ProcessNextFrame [" << m_currentIdx << " | " << m_filenameColorImages.size() << "]" << std::endl;
+		std::cout << "ProcessNextFrame [" << m_currentIdx << " | " << m_filenameColorImages.size() << "]" <<  "name:" << m_filenameColorImages[m_currentIdx] << std::endl;
 
 		FreeImageB rgbImage;
 		rgbImage.LoadImageFromFile(m_baseDir + m_filenameColorImages[m_currentIdx]);

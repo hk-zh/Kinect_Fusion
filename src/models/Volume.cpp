@@ -199,8 +199,8 @@ float Volume::trilinearInterpolation(const Vector3f& p) {
 
 // using given frame calculate TSDF values for all voxels in the grid
 void Volume::integrate(Frame frame) {
-    called_by_main();
-    return;
+    //called_by_main();
+    //return;
 	const Matrix4f worldToCamera = frame.getExtrinsicMatrix();
 	const Matrix4f cameraToWorld = worldToCamera.inverse();
 	const Matrix3f intrinsic = frame.getIntrinsicMatrix();

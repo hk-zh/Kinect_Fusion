@@ -12,7 +12,7 @@
 #include "SimpleMesh.h"
 #include "MarchingCubes.h"
 
-#define DISTANCE_THRESHOLD 0.05
+#define DISTANCE_THRESHOLD 0.1
 #define EDGE_THRESHOLD 0.02
 #define ANGLE_THRESHOLD 1.05
 #define MAX_FRAME_NUM 800
@@ -23,9 +23,9 @@
 
 int main() {
   // Make sure this path points to the data folder
-    std::string filenameIn = "../data/rgbd_dataset_freiburg1_xyz/";
-    std::string filenameBaseOut = std::string("../output/mesh_");
-    std::string filenameBaseOutMC = std::string("../output/MCmesh_");
+    std::string filenameIn = "../data/rgbd_dataset_freiburg1_360/";
+    std::string filenameBaseOut = std::string("../output_freiburg1_360/mesh_");
+    std::string filenameBaseOutMC = std::string("../output_freiburg1_360/MCmesh_");
 
   // load video
   std::cout << "Initialize virtual sensor..." << std::endl;

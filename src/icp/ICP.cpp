@@ -121,7 +121,14 @@ std::vector<std::pair<size_t, size_t>> ICP::findIndicesOfCorrespondingPoints(
             prevPointImgCoordCurFrame[0];
 
         Eigen::Vector3f curFramePointGlobal = rotation * curFrameVertexMapGlobal[curIdx] + translation;
+
         Eigen::Vector3f curFrameNormalGlobal = rotation * curFrameNormalMapGlobal[curIdx];
+//        if (curFramePointGlobal.allFinite()) {
+//            std:: cout << "distance: " <<  (curFramePointGlobal - prevPointGlobal).norm()  << std:: endl;
+//        }
+//        if (curFrameNormalGlobal.allFinite()) {
+//            std:: cout << "angle: " <<  (curFramePointGlobal - prevPointGlobal).norm()  << std:: endl;
+//        }
 
         if (curFramePointGlobal.allFinite() &&
             (curFramePointGlobal - prevPointGlobal).norm() <
