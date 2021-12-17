@@ -4,7 +4,7 @@
 #include "assert.h"
 #include "cuda.h"
 #include "cuda_runtime.h"
-#include "Volume.h"
+#include "Volume.cuh"
 
 #define N 10000000
 #define MAX_ERR 1e-6

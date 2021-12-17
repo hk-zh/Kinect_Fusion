@@ -1,8 +1,9 @@
-#include "ICP.h"
+#include "ICP.cuh"
 
 #include <iostream>
 #include <memory>
 #include <utility>
+#include "cuda.h"
 
 #define MINIMUM_ICP_CORRESPONDING_POINTS 1000
 

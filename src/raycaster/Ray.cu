@@ -1,4 +1,4 @@
-#include "Ray.h"
+#include "Ray.cuh"
 #include "Eigen.h"
 
 Ray::Ray() {}

@@ -1,4 +1,4 @@
-#include "RayCaster.h"
+#include "RayCaster.cuh"
 
 //RayCaster::RayCaster() {}
 

@@ -1,14 +1,14 @@
 #include <array>
 #include <iostream>
 
-#include "ICP.h"
-#include "RayCaster.h"
-#include "Frame.h"
-#include "Volume.h"
-#include "VirtualSensor.h"
+#include "ICP.cuh"
+#include "RayCaster.cuh"
+#include "Frame.cuh"
+#include "Volume.cuh"
+#include "VirtualSensor.cuh"
 #include "Eigen.h"
-#include "SimpleMesh.h"
-#include "MarchingCubes.h"
+#include "SimpleMesh.cuh"
+#include "MarchingCubes.cuh"
 
 #define DISTANCE_THRESHOLD 0.05
 #define EDGE_THRESHOLD 0.02

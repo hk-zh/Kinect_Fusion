@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "Eigen.h"
-#include "Frame.h"
+#include "Frame.cuh"
 
 class ICP {
  public:

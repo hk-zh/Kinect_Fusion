@@ -3,9 +3,9 @@
 #ifndef RAYCASTER_H
 #define RAYCASTER_H
 
-#include "Volume.h"
-#include "Frame.h"
-#include "Ray.h"
+#include "Volume.cuh"
+#include "Frame.cuh"
+#include "Ray.cuh"
 
 class RayCaster {
 private:

@@ -18,7 +18,7 @@
 #endif
 
 #ifndef MINF
-#define MINF -std::numeric_limits<float>::infinity()
+#define MINF 0xff800000
 #endif
 
 #ifndef M_PI

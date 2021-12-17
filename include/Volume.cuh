@@ -5,9 +5,11 @@
 
 #include <limits>
 #include "Eigen.h"
-#include "Frame.h"
+#include "Frame.cuh"
 #include <unordered_map>
 #include <vector>
+#include "cuda.h"
+#include "cuda_runtime.h"
 
 typedef unsigned int uint;
 
@@ -29,23 +31,23 @@ public:
 		return value;
 	}
 
-	float getWeight() {
+    float getWeight() {
 		return weight;
 	}
 
-	Vector4uc getColor() {
+    Vector4uc getColor() {
 		return color;
 	}
 
-	void setValue(float v) {
+    void setValue(float v) {
 		value = v;
 	}
 
-	void setWeight(float w) {
+    void setWeight(float w) {
 		weight = w;
 	}
 
-	void setColor(Vector4uc c) {
+    void setColor(Vector4uc c) {
 		color = c;
 	}
 };
@@ -125,7 +127,6 @@ public:
 
 	// trilinear interpolation of a point in voxel grid coordinates to get SDF at the point
 	float trilinearInterpolation(const Vector3f& p);
-		
 	// using given frame calculate TSDF values for all voxels in the grid
 	void integrate(Frame frame);
 
@@ -133,7 +134,7 @@ public:
 	void zeroOutMemory();
 
 	//! Get index of voxel at (x, y, z)
-	inline uint getPosFromTuple(int x, int y, int z) const
+	uint getPosFromTuple(int x, int y, int z) const
 	{
 		return x * dy * dz + y * dz + z;
 	}

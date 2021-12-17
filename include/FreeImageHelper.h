@@ -9,7 +9,7 @@
 #include <FreeImage.h>
 #include <limits>
 #ifndef MINF
-#define MINF -std::numeric_limits<float>::infinity()
+#define MINF 0xff800000
 #endif
 
 struct FreeImage {

@@ -57,25 +57,26 @@ set(INCLUDE
 include_directories(${INCLUDE})
 
 set(HEADERS 
-    ${INCLUDE_DIR}/Eigen.h
-    ${INCLUDE_DIR}/FreeImageHelper.h
-    ${INCLUDE_DIR}/VirtualSensor.h
-    ${INCLUDE_DIR}/ICP.h
-    ${INCLUDE_DIR}/Frame.h
-    ${INCLUDE_DIR}/Volume.h
-    ${INCLUDE_DIR}/SimpleMesh.h
-    ${INCLUDE_DIR}/MarchingCubes.h
-    ${INCLUDE_DIR}/RayCaster.h
-    ${INCLUDE_DIR}/Ray.h)
+        ${INCLUDE_DIR}/Eigen.h
+        ${INCLUDE_DIR}/FreeImageHelper.h
+        ${INCLUDE_DIR}/VirtualSensor.cuh
+        ${INCLUDE_DIR}/ICP.cuh
+        ${INCLUDE_DIR}/Frame.cuh
+        ${INCLUDE_DIR}/Volume.cuh
+        ${INCLUDE_DIR}/SimpleMesh.cuh
+        ${INCLUDE_DIR}/MarchingCubes.cuh
+        ${INCLUDE_DIR}/RayCaster.cuh
+        ${INCLUDE_DIR}/Ray.cuh
+    )
 
 set(SOURCES
-    main.cpp
-    ${HELPERS_DIR}/FreeImageHelper.cpp
-    ${MODELS_DIR}/Frame.cpp
-    ${MODELS_DIR}/Volume.cpp
-    ${ICP_DIR}/ICP.cpp
-    ${RAYCASTER_DIR}/RayCaster.cpp
-    ${RAYCASTER_DIR}/Ray.cpp
+        main.cu
+        ${HELPERS_DIR}/FreeImageHelper.cpp
+        ${MODELS_DIR}/Frame.cu
+        ${MODELS_DIR}/Volume.cu
+        ${ICP_DIR}/ICP.cu
+        ${RAYCASTER_DIR}/RayCaster.cu
+        ${RAYCASTER_DIR}/Ray.cu
     )
 
 add_library(kernels
@@ -92,7 +93,7 @@ target_link_libraries(kernels)
 link_directories(${FreeImage_LIBRARY_DIR})
 add_executable(kinect_fusion ${SOURCES} ${HEADERS})
 target_include_directories(kinect_fusion PUBLIC ${Eigen3_INCLUDE_DIR} ${FreeImage_INCLUDE_DIR} ${INCLUDE})
-target_link_libraries(kinect_fusion general freeimage kernels)
+target_link_libraries(kinect_fusion general freeimage)
 
 # On Windows copy dll to executable folder
 if(WIN32)

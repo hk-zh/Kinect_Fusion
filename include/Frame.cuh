@@ -8,8 +8,12 @@
 #include <vector>
 
 #include "Eigen.h"
-#include "VirtualSensor.h"
+#include "VirtualSensor.cuh"
 #include <memory>
+#include "cuda.h"
+#include "cuda_runtime.h"
+#include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
 
 class Frame {
     friend class RayCaster;
@@ -18,9 +22,9 @@ public:
     Frame();
     Frame(const Frame& other);
     Frame(const float* depthMap, const BYTE* colorMap,
-        const Eigen::Matrix3f& depthIntrinsics,
-        const Eigen::Matrix4f& depthExtrinsics,
-        const Eigen::Matrix4f& trajectoryInv, int depthWidth, int depthHeight);
+          const Eigen::Matrix3f& depthIntrinsics,
+          const Eigen::Matrix4f& depthExtrinsics,
+          const Eigen::Matrix4f& trajectoryInv, int depthWidth, int depthHeight);
     Eigen::Vector3f getVertexGlobal(size_t idx) const;
     Eigen::Vector3f getNormalGlobal(size_t idx) const;
     Eigen::Vector3f getVertex(size_t idx) const;
@@ -44,27 +48,27 @@ public:
 
     //+++++++++++++++++++++++++++++++++++++++++++++
     static Eigen::Vector3f transformPoint(
-        Eigen::Vector3f& point,
-        const Eigen::Matrix4f& transformation);
+            Eigen::Vector3f& point,
+            const Eigen::Matrix4f& transformation);
 
     static Eigen::Vector2i perspectiveProjection(
-        Eigen::Vector3f& point,
-        const Eigen::Matrix3f& intrinsic);
+            Eigen::Vector3f& point,
+            const Eigen::Matrix3f& intrinsic);
 
     //+++++++++++++++++++++++++++++++++++++++++++++
 
 private:
     void computeVertexMap(const float* depthMap,
-        const Eigen::Matrix3f& depthIntrinsics, int depthWidth,
-        int depthHeight);
+                          const Eigen::Matrix3f& depthIntrinsics, int depthWidth,
+                          int depthHeight);
     void computeNormalMap(int depthWidth, int depthHeight);
     std::vector<Eigen::Vector3f> transformPoints(
-        const std::vector<Eigen::Vector3f>& points,
-        const Eigen::Matrix4f& transformation);
+            const std::vector<Eigen::Vector3f>& points,
+            const Eigen::Matrix4f& transformation);
 
     std::vector<Eigen::Vector3f> rotatePoints(
-        const std::vector<Eigen::Vector3f>& points,
-        const Eigen::Matrix3f& rotation);
+            const std::vector<Eigen::Vector3f>& points,
+            const Eigen::Matrix3f& rotation);
 
     int depthWidth;
     int depthHeight;
