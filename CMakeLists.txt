@@ -4,6 +4,8 @@ set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE TYPE INTERNAL FORCE)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(USE_SYSTEM_FLANN "Use system pre-installed flann" ON)
+
 project(kinect_fusion)
 
 # Mac only stuff
@@ -20,6 +22,8 @@ set(RAYCASTER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/raycaster CACHE PATH "Path to 
 set(MODELS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/models CACHE PATH "Path to models folder")
 set(LIBRARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs CACHE PATH "Path to lib folder")
 set(Eigen3_INCLUDE_DIR ${LIBRARY_DIR}/eigen/ CACHE PATH "Path to Eigen source folder")
+set(Ceres_DIR ${LIBRARY_DIR}/Ceres/CMake CACHE PATH "Path to Ceres build folder")
+set(Ceres_INCLUDE_DIR ${Ceres_DIR}/../include)
 
 
 # Use pre-compiled libraries on Windows
@@ -29,10 +33,13 @@ if(WIN32)
 endif(WIN32)
 
 # Use 
-if(MACOSX)  
+if(MACOSX)
+    find_package(Ceres REQUIRED)
     set(FreeImage_INCLUDE_DIR "/usr/local/Cellar/freeimage/3.18.0/include")
     set(FreeImage_LIBRARY_DIR "/usr/local/Cellar/freeimage/3.18.0/lib")
-    set(Eigen3_INCLUDE_DIR /usr/local/Cellar/eigen/3.3.9/include/eigen3)
+    set(Eigen3_INCLUDE_DIR "/usr/local/Cellar/eigen/3.4.0_1/include/eigen3")
+    set(Flann_INCLUDE_DIR "/usr/local/Cellar/flann/1.9.1_11/include/flann")
+    set(Flann_LIBRARY_DIR "/usr/local/Cellar/flann/1.9.1_11/lib")
 endif(MACOSX)
 
 message(${Eigen3_INCLUDE_DIR})
@@ -60,8 +67,9 @@ set(HEADERS
     ${INCLUDE_DIR}/SimpleMesh.h
     ${INCLUDE_DIR}/MarchingCubes.h
     ${INCLUDE_DIR}/RayCaster.h
-    ${INCLUDE_DIR}/Ray.h)
-
+    ${INCLUDE_DIR}/Ray.h
+    ${INCLUDE_DIR}/NearestNeighbour.h
+    ${INCLUDE_DIR}/ProcrustesAligner.h)
 set(SOURCES
     main.cpp
     ${HELPERS_DIR}/FreeImageHelper.cpp
@@ -69,12 +77,12 @@ set(SOURCES
     ${MODELS_DIR}/Volume.cpp
     ${ICP_DIR}/ICP.cpp
     ${RAYCASTER_DIR}/RayCaster.cpp
-    ${RAYCASTER_DIR}/Ray.cpp)
+    ${RAYCASTER_DIR}/Ray.cpp src/icp/ICPOptimizer.cpp include/ICPOptimizer.h include/NearestNeighbour.h src/icp/CeresICPOptimizer.cpp include/ProcrustesAligner.h)
 
-link_directories(${FreeImage_LIBRARY_DIR})
+link_directories(${FreeImage_LIBRARY_DIR} ${Flann_LIBRARY_DIR})
 add_executable(kinect_fusion ${SOURCES} ${HEADERS})
-target_include_directories(kinect_fusion PUBLIC ${Eigen3_INCLUDE_DIR} ${FreeImage_INCLUDE_DIR} ${INCLUDE})
-target_link_libraries(kinect_fusion general freeimage)
+target_include_directories(kinect_fusion PUBLIC ${Flann_INCLUDE_DIR} ${Eigen3_INCLUDE_DIR} ${FreeImage_INCLUDE_DIR} ${INCLUDE})
+target_link_libraries(kinect_fusion general freeimage ceres flann)
 
 # On Windows copy dll to executable folder
 if(WIN32)

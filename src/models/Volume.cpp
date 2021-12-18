@@ -2,6 +2,8 @@
 
 #define TRUNCATION 0.06f
 
+#include <iostream>
+
 Volume::Volume() {}
 
 //! Initializes an empty volume dataset.
@@ -302,7 +304,9 @@ void Volume::integrate(Frame frame) {
 			}
 		}
 	}
-
+//    for (int i = 150000; i < 150100; i++) {
+//        std::cout << vol[i].getValue() << std::endl;
+//    }
 	std::cout << "Integrate done!" << std::endl;
 
 

@@ -14,8 +14,8 @@
 
 class ICP {
  public:
-  ICP(Frame &_prevFrame, Frame &_curFrame, const double distanceThreshold,
-      const double normalThreshold);
+  ICP(Frame &_prevFrame, Frame &_curFrame, double distanceThreshold,
+      double normalThreshold);
 
   Matrix4f estimatePose(
       Eigen::Matrix4f& estimatedPose,

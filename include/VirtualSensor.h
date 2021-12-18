@@ -37,7 +37,7 @@ public:
 		// read tracking
 		if (!ReadTrajectoryFile(datasetDir + "groundtruth.txt", m_trajectory, m_trajectoryTimeStamps)) return false;
 
-		if (m_filenameDepthImages.size() != m_filenameColorImages.size()) return false;
+//if (m_filenameDepthImages.size() != m_filenameColorImages.size()) return false;
 
 		// image resolutions
 		m_colorImageWidth = 640;
