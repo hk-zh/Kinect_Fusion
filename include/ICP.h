@@ -9,15 +9,15 @@
 #include <utility>
 #include <vector>
 
-#include "Eigen.h"
+#include "eigen3/Eigen/Eigen"
 #include "Frame.h"
-
+using namespace Eigen;
 class ICP {
  public:
   ICP(Frame &_prevFrame, Frame &_curFrame, const double distanceThreshold,
       const double normalThreshold);
 
-  Matrix4f estimatePose(
+  Eigen::Matrix4f estimatePose(
       Eigen::Matrix4f& estimatedPose,
       int iterationsNum = 10 );
 

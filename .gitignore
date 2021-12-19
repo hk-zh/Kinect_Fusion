@@ -38,3 +38,6 @@
 /output
 .DS_Store
 .vscode/
+/cmake-build-release
+/cmake-build-debug
+.idea

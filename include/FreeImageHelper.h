@@ -5,7 +5,7 @@
 
 #include <string>
 #include <algorithm>
-
+#include <limits>
 #include <FreeImage.h>
 
 #ifndef MINF

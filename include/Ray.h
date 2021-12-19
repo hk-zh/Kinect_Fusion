@@ -3,8 +3,8 @@
 #ifndef RAY_H
 #define RAY_H
 
-#include "Eigen.h"
-
+#include "eigen3/Eigen/Eigen"
+using namespace Eigen;
 class Ray {
 private:
 	Vector3f start;

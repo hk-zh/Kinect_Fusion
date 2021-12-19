@@ -4,10 +4,11 @@
 #define VOLUME_H
 
 #include <limits>
-#include "Eigen.h"
+#include "eigen3/Eigen/Eigen"
 #include "Frame.h"
 #include <unordered_map>
 #include <vector>
+using namespace Eigen;
 
 typedef unsigned int uint;
 

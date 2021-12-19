@@ -7,10 +7,10 @@
 
 #include <vector>
 
-#include "Eigen.h"
+#include <eigen3/Eigen/Eigen>
 #include "VirtualSensor.h"
 #include <memory>
-
+using namespace Eigen;
 class Frame {
     friend class RayCaster;
 
