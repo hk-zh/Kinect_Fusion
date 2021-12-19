@@ -8,6 +8,7 @@
 #include "Frame.cuh"
 #include <unordered_map>
 #include <vector>
+#include <cfloat>
 #include "cuda.h"
 #include "cuda_runtime.h"
 

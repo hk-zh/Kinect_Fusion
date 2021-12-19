@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 14)
 
-project(kinect_fusion)
+project(kinect_fusion CUDA CXX)
 
 # Mac only stuff
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

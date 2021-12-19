@@ -18,7 +18,7 @@
 #endif
 
 #ifndef MINF
-#define MINF 0xff800000
+#define MINF -std::numeric_limits<float>::infinity()
 #endif
 
 #ifndef M_PI
@@ -32,6 +32,7 @@
 #include <eigen3/unsupported/Eigen/NonLinearOptimization>
 #include <eigen3/Eigen/Sparse>
 #include <eigen3/Eigen/SparseCholesky>
+#include <cfloat>
 
 typedef Eigen::Matrix<unsigned char, 4, 1> Vector4uc;
 

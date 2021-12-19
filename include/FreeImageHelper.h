@@ -5,11 +5,11 @@
 
 #include <string>
 #include <algorithm>
-
+#include <cfloat>
 #include <FreeImage.h>
 #include <limits>
 #ifndef MINF
-#define MINF 0xff800000
+#define MINF -FLT_MAX
 #endif
 
 struct FreeImage {

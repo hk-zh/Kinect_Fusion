@@ -1,7 +1,6 @@
 #include "Volume.cuh"
-extern "C" void called_by_main();
 #define TRUNCATION 0.06f
-
+#include <float.h>
 Volume::Volume() {}
 
 //! Initializes an empty volume dataset.
@@ -51,7 +50,7 @@ void Volume::compute_ddx_dddx()
 void Volume::zeroOutMemory()
 {
 	for (uint i1 = 0; i1 < dx * dy * dz; i1++)
-		vol[i1] = Voxel(std::numeric_limits<float>::max(), 0.0f, Vector4uc{ 0, 0, 0, 0 });
+		vol[i1] = Voxel(FLT_MAX, 0.0f, Vector4uc{ 0, 0, 0, 0 });
 }
 
 //! Returns the Data.
@@ -231,7 +230,7 @@ __global__ void integrate_cuda(const float* depthMap, const BYTE* colorMap,
         //Pi = frame.projectOntoImgPlane(Pc);
         Eigen::Vector3f projected = intrinsicMatrix * Pc;
         if (projected.z() == 0) {
-            Pi =  Eigen::Vector2i(FLT_MIN, FLT_MIN);
+            Pi =  Eigen::Vector2i(MINF, MINF);
         }
         projected /= projected.z();
         Pi = Eigen::Vector2i((int)round(projected.x()), (int)round(projected.y()));
@@ -251,7 +250,7 @@ __global__ void integrate_cuda(const float* depthMap, const BYTE* colorMap,
             index = Pi.y() * width + Pi.x();
             depth = depthMap[index];
 
-            if (depth == FLT_MIN)
+            if (depth == -1.0f)
                 continue;
 
             //std::cout << "Odbok!!\n";
@@ -327,10 +326,15 @@ void Volume::integrate(Frame frame) {
     int width = frame.getFrameWidth();
     int height = frame.getFrameHeight();
 
+
+
     //std::cout << intrinsic << std::endl;
 
     // subscripts: g - global coordinate system | c - camera coordinate system | i - image space
     // short notations: V - vector | P - point | sdf - signed distance field value | tsdf - truncated sdf
+
+
+
 
 
     std::cout << "copy values weights" <<std::endl;
@@ -449,6 +453,8 @@ void Volume::integrate(Frame frame) {
             std::cout << colors[i]  <<std::endl;
         }
     }
+    std::cout<<FLT_MAX<<std::endl;
+
 
     cudaFree(dDepthMap);
     cudaFree(dValues);
