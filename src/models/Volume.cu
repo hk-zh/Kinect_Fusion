@@ -230,10 +230,10 @@ __global__ void integrate_cuda(const float* depthMap, const BYTE* colorMap,
         Pc =  rotation * Pg + translation;
         //Pi = frame.projectOntoImgPlane(Pc);
         Eigen::Vector3f projected = intrinsicMatrix * Pc;
-        if (projected[2] == 0) {
-            Pi =  Eigen::Vector2i(MINF, MINF);
+        if (projected.z() == 0) {
+            Pi =  Eigen::Vector2i(FLT_MIN, FLT_MIN);
         }
-        projected /= projected[2];
+        projected /= projected.z();
         Pi = Eigen::Vector2i((int)round(projected.x()), (int)round(projected.y()));
 
         //std::cout << Pg << std::endl << Pc << std::endl << Pi << std::endl;
@@ -245,10 +245,10 @@ __global__ void integrate_cuda(const float* depthMap, const BYTE* colorMap,
         //std::cout << Pg << std::endl << Pc << std::endl << Pi << std::endl;
 
         //if (frame.containsImgPoint(Pi)) {
-        if(Pi[0] >= 0 && Pi[0] < width && Pi[1] >= 0 &&
-           Pi[1] < height){
+        if(Pi.x() >= 0 && Pi.x() < width && Pi.y() >= 0 &&
+           Pi.y() < height){
             // get the depth of the point
-            index = Pi[1] * width + Pi[0];
+            index = Pi.y() * width + Pi.x();
             depth = depthMap[index];
 
             if (depth == FLT_MIN)
@@ -257,7 +257,7 @@ __global__ void integrate_cuda(const float* depthMap, const BYTE* colorMap,
             //std::cout << "Odbok!!\n";
 
             // calculate the sdf value
-            lambda = (Pc / Pc[2]).norm();
+            lambda = (Pc / Pc.z()).norm();
 
             sdf = depth - ((Pg - translation) / lambda).norm();
 
@@ -312,7 +312,6 @@ __global__ void integrate_cuda(const float* depthMap, const BYTE* colorMap,
         }
 
     }
-    values[0] = 12345.12;
 }
 
 
@@ -349,11 +348,6 @@ void Volume::integrate(Frame frame) {
             }
         }
     }
-
-    for (int idx=150000;idx<150100;idx++){
-
-        std::cout << vol[idx].getValue() << std::endl;
-    }
     std::cout << "copy values weights done" <<std::endl;
 
 
@@ -362,26 +356,34 @@ void Volume::integrate(Frame frame) {
     float *dDepthMap, *dValues, *dWeights;
     Vector3f *dmNormalsGlobal;
     Vector4uc *dColors;
+    BYTE* dColorMap;
 
 
 
     std::vector<Eigen::Vector3f> mNormalsGlobal = frame.getNormalMapGlobal();
 
     uint size = mNormalsGlobal.size();
+
+    uint colormap_size = sizeof(colorMap)/sizeof(colorMap[0]);
+
     thrust::host_vector<Vector3f> mNormalsGlobal_host = mNormalsGlobal;
 
     //thrust::device_vector<Eigen::Vector3f> mNormalsGlobal_device = mNormalsGlobal_host;
     Vector3f* mNormalsGlobal_cuda = thrust::raw_pointer_cast(mNormalsGlobal_host.data());
 
-    cudaMalloc((void**)&dDepthMap, width * height * sizeof(float));
-    cudaMalloc((void**)&dValues, dx * dy * dz * sizeof(float));
-    cudaMalloc((void**)&dWeights, dx * dy * dz * sizeof(float));
-    cudaMalloc((void**)&dColors, dx * dy * dz * sizeof(Vector4uc));
-    cudaMalloc((void**)&dmNormalsGlobal, size * sizeof(Vector3f));
+    cudaMalloc(&dDepthMap, width * height * sizeof(float));
+    cudaMalloc(&dColorMap, colormap_size * sizeof(BYTE));
+    cudaMalloc(&dValues, dx * dy * dz * sizeof(float));
+    cudaMalloc(&dWeights, dx * dy * dz * sizeof(float));
+    cudaMalloc(&dColors, dx * dy * dz * sizeof(Vector4uc));
+    cudaMalloc(&dmNormalsGlobal, size * sizeof(Vector3f));
 
     // copy data to device
     cudaMemcpy(
             dDepthMap, depthMap, width * height * sizeof(float),
+            cudaMemcpyHostToDevice);
+    cudaMemcpy(
+            dColorMap, colorMap, colormap_size * sizeof(BYTE),
             cudaMemcpyHostToDevice);
     cudaMemcpy(
             dValues, values, dx * dy * dz * sizeof(float),
@@ -406,7 +408,7 @@ void Volume::integrate(Frame frame) {
             (dx + threads.x - 1) / threads.x,
             (dy + threads.y - 1) / threads.y);
 
-    integrate_cuda<<<blocks,threads>>>(dDepthMap, colorMap,
+    integrate_cuda<<<blocks,threads>>>(dDepthMap, dColorMap,
              width, height, dx, dy, dz,
             worldToCamera, intrinsicMatrix, dmNormalsGlobal,
                             dValues, dWeights, dColors, min, max);
@@ -416,10 +418,10 @@ void Volume::integrate(Frame frame) {
     std::cout << "Integrate done!" << std::endl;
 
 
-
-    cudaMemcpy(
+    auto err = cudaGetErrorString(cudaMemcpy(
             values, dValues, dx * dy * dz * sizeof(float),
-            cudaMemcpyDeviceToHost);
+            cudaMemcpyDeviceToHost));
+    std::cout<<err<<std::endl;
     cudaMemcpy(
             weights, dWeights, dx * dy * dz * sizeof(float),
             cudaMemcpyDeviceToHost);
@@ -438,17 +440,22 @@ void Volume::integrate(Frame frame) {
             }
         }
     }
-    for (int idx=150000;idx<150100;idx++){
-
-        std::cout << vol[idx].getValue() << std::endl;
-    }
     std::cout << "copy values weights done" <<std::endl;
+
+    for(int i=0;i<dz*dy*dx;i++){
+        if(colors[i][0] != 0){
+            std::cout << values[i]  <<std::endl;
+            std::cout << weights[i]  <<std::endl;
+            std::cout << colors[i]  <<std::endl;
+        }
+    }
 
     cudaFree(dDepthMap);
     cudaFree(dValues);
     cudaFree(dWeights);
     cudaFree(dColors);
     cudaFree(dmNormalsGlobal);
+    cudaFree(dColorMap);
 
 
 }
