@@ -4,7 +4,7 @@
 
 #include "ICPOptimizer.h"
 
-ICPOptimizer::	ICPOptimizer() : m_bUsePointToPlaneConstraints{false},
+ICPOptimizer::ICPOptimizer() : m_bUsePointToPlaneConstraints{true},
                                    m_nIterations{10},
                                    m_nearestNeighborSearch{std::make_unique<NearestNeighborSearchFlann>()}{}
 
@@ -21,9 +21,9 @@ void ICPOptimizer::setNbOfIterations(unsigned int nIterations) {
     m_nIterations = nIterations;
 }
 
-Matrix4f ICPOptimizer::estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current,
-                                    std::vector<Vector3f> vertex_prediction, std::vector<Vector3f> normal_prediction,
-                                    Matrix4f initialPose) {}
+//virtual bool ICPOptimizer::estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current,
+//                                    std::vector<Vector3f> vertex_prediction, std::vector<Vector3f> normal_prediction,
+//                                    Matrix4f &initialPose);
 
 ICPOptimizer:: ~ICPOptimizer()
 {
@@ -81,4 +81,10 @@ void ICPOptimizer::pruneCorrespondences(const std::vector<Vector3f> &sourceNorma
             }
         }
     }
+}
+
+bool ICPOptimizer::estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current,
+                                std::vector<Vector3f> vertex_prediction, std::vector<Vector3f> normal_prediction,
+                                Matrix4f &initialPose) {
+    return false;
 }

@@ -17,7 +17,7 @@ class ICP {
   ICP(Frame &_prevFrame, Frame &_curFrame, double distanceThreshold,
       double normalThreshold);
 
-  Matrix4f estimatePose(
+  bool estimatePose(
       Eigen::Matrix4f& estimatedPose,
       int iterationsNum = 10 );
 

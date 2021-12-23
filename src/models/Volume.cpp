@@ -1,6 +1,6 @@
 #include "Volume.h"
 
-#define TRUNCATION 0.06f
+#define TRUNCATION 0.05f
 
 #include <iostream>
 
@@ -71,85 +71,10 @@ void Volume::setNewBoundingPoints(Vector3f& min_, Vector3f& max_)
 	compute_ddx_dddx();
 }
 
-//! Updates the color of a voxel
-void Volume::updateColor(Vector3i voxelCoords, Vector4uc& color, bool notVisited) {
-	float weight = 1.0;
-	//std::cout << voxelCoords << std::endl;
-	Voxel& vox = get(voxelCoords[0], voxelCoords[1], voxelCoords[2]);
 
-	if (notVisited)
-		vox.setColor(color);
-	else
-		vox.setColor((vox.getColor() + color) / 2);
-}
-
-//! Updates the color of a voxel for a point p in grid coordinates
-void Volume::updateColor(Vector3f point, Vector4uc& color, bool notVisited) {
-	Vector3i p_int = Volume::intCoords(point);
-
-	updateColor(Vector3i{ p_int[0] + 0, p_int[1] + 0, p_int[2] + 0 }, color, notVisited);
-	updateColor(Vector3i{ p_int[0] + 1, p_int[1] + 0, p_int[2] + 0 }, color, notVisited);
-	updateColor(Vector3i{ p_int[0] + 0, p_int[1] + 1, p_int[2] + 0 }, color, notVisited);
-	updateColor(Vector3i{ p_int[0] + 1, p_int[1] + 1, p_int[2] + 0 }, color, notVisited);
-	updateColor(Vector3i{ p_int[0] + 0, p_int[1] + 0, p_int[2] + 1 }, color, notVisited);
-	updateColor(Vector3i{ p_int[0] + 1, p_int[1] + 0, p_int[2] + 1 }, color, notVisited);
-	updateColor(Vector3i{ p_int[0] + 0, p_int[1] + 1, p_int[2] + 1 }, color, notVisited);
-	updateColor(Vector3i{ p_int[0] + 1, p_int[1] + 1, p_int[2] + 1 }, color, notVisited);
-}
-
-// estimate the normal for a point in voxel grid coordinates using voxel grid by calculating the numerical derivative of TSDF
-Vector3f Volume::calculateNormal(const Vector3f& point) {
-	//Vector3f shiftedXup, shiftedXdown, shiftedYup, shiftedYdown, shiftedZup, shiftedZdown;
-	Vector3f shiftedXup, shiftedYup, shiftedZup;
-	float x_dir, y_dir, z_dir;
-	Vector3f normal;
-
-	shiftedXup = point;
-	shiftedXup[0] += 1;
-	//shiftedXdown = point;
-	//shiftedXdown[0] -= 1;
-
-	shiftedYup = point;
-	shiftedYup[1] += 1;
-	//shiftedYdown = point;
-	//shiftedYdown[1] -= 1;
-
-	shiftedZup = point;
-	shiftedZup[2] += 1;
-	//shiftedZdown = point;
-	//shiftedZdown[2] -= 1;
-
-	float sdfXup = trilinearInterpolation(shiftedXup);
-	//float sdfXdown = trilinearInterpolation(shiftedXdown);
-
-	float sdfYup = trilinearInterpolation(shiftedYup);
-	//float sdfYdown = trilinearInterpolation(shiftedYdown);
-
-	float sdfZup = trilinearInterpolation(shiftedYup);
-	//float sdfZdown = trilinearInterpolation(shiftedYdown);
-
-	float sdfPoint = trilinearInterpolation(point);
-
-	if (
-		sdfXup == std::numeric_limits<float>::max() ||
-		sdfYup == std::numeric_limits<float>::max() ||
-		sdfZup == std::numeric_limits<float>::max() ||
-		sdfPoint == std::numeric_limits<float>::max()
-		)
-		return Vector3f(MINF, MINF, MINF);
-
-	x_dir = (sdfXup - sdfPoint) / (dddx);
-	y_dir = (sdfYup - sdfPoint) / (dddy);
-	z_dir = (sdfZup - sdfPoint) / (dddz);
-
-	normal = Vector3f{ x_dir, y_dir, z_dir };
-	normal.normalize();
-
-	return normal;
-}
 
 // trilinear interpolation of a point in voxel grid coordinates to get SDF at the point
-float Volume::trilinearInterpolation(const Vector3f& p) {
+float Volume::trilinearInterpolation(const Vector3f& p) const {
 	Vector3i start = intCoords(p);
 	float c000, c001, c010, c011, c100, c101, c110, c111;
 
@@ -261,7 +186,7 @@ void Volume::integrate(Frame frame) {
 			
 					cos_angle = - ray.dot(normal) / ray.norm() / normal.norm();
 
-					tsdf_weight = 1; //-cos_angle / depth; // 1; // 1 / depth;
+					tsdf_weight = 1.0f; //-cos_angle / depth; // 1; // 1 / depth;
 
 					// get the previous value and weight
 					value = vol[getPosFromTuple(i, j, k)].getValue();
@@ -282,21 +207,32 @@ void Volume::integrate(Frame frame) {
 					else {
 						tsdf = std::max(-1.0f, sdf / TRUNCATION);
 					}
-
+                    if (tsdf < -0.7f) {
+                        continue;
+                    }
 					// the new value and weight is the running average
 					vol[getPosFromTuple(i, j, k)].setValue((value * weight + tsdf * tsdf_weight) / (weight + tsdf_weight));
-					vol[getPosFromTuple(i, j, k)].setWeight(weight + tsdf_weight);
 
-					if (sdf <= TRUNCATION / 2 && sdf>= - TRUNCATION / 2) {
+					if (sdf <= TRUNCATION / 2 && sdf>= - TRUNCATION / 2 && colorMap[4 * index +3] == 255) {
+//                        std::cout << "weight: " << weight << std::endl;
+//                        std::cout << "oldColor: " << std::endl;
+//                        std::cout << color << std::endl;
+					    Vector4uc newColor = Vector4uc{
+                                (const unsigned char)(((float)color[0] * weight + (float)colorMap[4 * index + 0] * tsdf_weight) / (weight + tsdf_weight)),
+                                (const unsigned char)(((float)color[1] * weight + (float)colorMap[4 * index + 1] * tsdf_weight) / (weight + tsdf_weight)),
+                                (const unsigned char)(((float)color[2] * weight + (float)colorMap[4 * index + 2] * tsdf_weight) / (weight + tsdf_weight)),
+                                (const unsigned char)(((float)color[3] * weight + (float)colorMap[4 * index + 3] * tsdf_weight) / (weight + tsdf_weight))
+                        };
+//
+//					    std::cout << "newColor: " << std::endl;
+//					    std::cout << newColor << std::endl;
+
+//                        std::cout << (float) colorMap[4*index] << " " <<  (float)  colorMap[4*index + 1] << " " <<  (float) colorMap[4*index + 2] <<" " <<  (float)  colorMap[4*index + 3] << std::endl;
 						vol[getPosFromTuple(i, j, k)].setColor(
-							Vector4uc{
-								(const unsigned char)((color[0] * weight + colorMap[4 * index + 0] * tsdf_weight) / (weight + tsdf_weight)),
-								(const unsigned char)((color[1] * weight + colorMap[4 * index + 1] * tsdf_weight) / (weight + tsdf_weight)),
-								(const unsigned char)((color[2] * weight + colorMap[4 * index + 2] * tsdf_weight) / (weight + tsdf_weight)),
-								(const unsigned char)((color[3] * weight + colorMap[4 * index + 3] * tsdf_weight) / (weight + tsdf_weight))
-							}
+                            newColor
 						);
 					}
+                    vol[getPosFromTuple(i, j, k)].setWeight(weight + tsdf_weight);
 					
 					//std::cout << vol[getPosFromTuple(i, j, k)].getValue() << std::endl;
 				}

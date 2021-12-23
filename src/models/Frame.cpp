@@ -18,7 +18,7 @@ Frame::Frame(const Frame& other) {
     intrinsicMatrix = other.intrinsicMatrix;
 }
 
-Frame::Frame(const float* depthMap, const BYTE* colorMap,
+Frame::Frame(const float* depthMap, BYTE* colorMap,
     const Eigen::Matrix3f& depthIntrinsics,
     const Eigen::Matrix4f& depthExtrinsics,
     const Eigen::Matrix4f& trajectoryInv,
@@ -182,7 +182,7 @@ const Eigen::Matrix3f Frame::getIntrinsicMatrix() {
 const float* Frame::getDepthMap() {
     return depthMap;
 }
-const BYTE* Frame::getColorMap() {
+BYTE* Frame::getColorMap() {
     return colorMap;
 }
 

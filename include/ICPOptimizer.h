@@ -13,6 +13,8 @@
 #include "NearestNeighbour.h"
 #include "ProcrustesAligner.h"
 
+#define MINIMUM_MATCHING_NUMBER 50
+
 /**
  * Helper methods for writing Ceres cost functions.
  */
@@ -201,15 +203,15 @@ public:
     void setMatchingMaxDistance(float maxDistance);
     void usePointToPlaneConstraints(bool bUsePointToPlaneConstraints);
     void setNbOfIterations(unsigned nIterations);
-    virtual Matrix4f estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current, std::vector<Vector3f> vertex_prediction, std::vector<Vector3f> normal_prediction, Matrix4f initialPose = Matrix4f::Identity());
+    virtual bool estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current, std::vector<Vector3f> vertex_prediction, std::vector<Vector3f> normal_prediction, Matrix4f &initialPose);
     ~ICPOptimizer();
 protected:
     bool m_bUsePointToPlaneConstraints;
     unsigned m_nIterations;
     std::unique_ptr<NearestNeighborSearch> m_nearestNeighborSearch;
-    std::vector<Vector3f> transformPoints(const std::vector<Vector3f> &sourcePoints, const Matrix4f &pose);
-    std::vector<Vector3f> transformNormals(const std::vector<Vector3f> &sourceNormals, const Matrix4f &pose);
-    void pruneCorrespondences(const std::vector<Vector3f> &sourceNormals, const std::vector<Vector3f> &targetNormals, std::vector<Match> &matches);
+    static std::vector<Vector3f> transformPoints(const std::vector<Vector3f> &sourcePoints, const Matrix4f &pose);
+    static std::vector<Vector3f> transformNormals(const std::vector<Vector3f> &sourceNormals, const Matrix4f &pose);
+    static void pruneCorrespondences(const std::vector<Vector3f> &sourceNormals, const std::vector<Vector3f> &targetNormals, std::vector<Match> &matches);
 };
 
 
@@ -218,7 +220,7 @@ class CeresICPOptimizer : public ICPOptimizer
 {
 public:
     CeresICPOptimizer();
-    Matrix4f estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current, std::vector<Vector3f> vertex_prediction, std::vector<Vector3f> normal_prediction, Matrix4f initialPose = Matrix4f::Identity()) override;
+    bool estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current, std::vector<Vector3f> vertex_prediction, std::vector<Vector3f> normal_prediction, Matrix4f &initialPose ) override;
     ~CeresICPOptimizer();
 
 private:
@@ -232,9 +234,9 @@ class LinearICPOptimizer : public ICPOptimizer
 public:
     LinearICPOptimizer();
     ~LinearICPOptimizer();
-    Matrix4f estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current, std::vector<Vector3f> vertex_prediction, std::vector<Vector3f> normal_prediction, Matrix4f initialPose = Matrix4f::Identity()) override;
+    bool estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current, std::vector<Vector3f> vertex_prediction, std::vector<Vector3f> normal_prediction, Matrix4f &initialPose) override;
 
 private:
-    Matrix4f estimatePosePointToPoint(const std::vector<Vector3f> &sourcePoints, const std::vector<Vector3f> &targetPoints);
-    Matrix4f estimatePosePointToPlane(const std::vector<Vector3f> &sourcePoints, const std::vector<Vector3f> &targetPoints, const std::vector<Vector3f> &targetNormals);
+    static Matrix4f estimatePosePointToPoint(const std::vector<Vector3f> &sourcePoints, const std::vector<Vector3f> &targetPoints);
+    static Matrix4f estimatePosePointToPlane(const std::vector<Vector3f> &sourcePoints, const std::vector<Vector3f> &targetPoints, const std::vector<Vector3f> &targetNormals);
 };

@@ -16,8 +16,8 @@ using namespace Eigen;
 class Voxel
         : public std::__1::error_code {
 private:
-	float value;
-	float weight;
+	float value{};
+	float weight{};
 	Vector4uc color;
 
 public:
@@ -25,16 +25,19 @@ public:
 
 	Voxel(float value_, float weight_, Vector4uc color_) : value{ value_ }, weight{ weight_ }, color{ color_ } {}
 
-	float getValue() {
+	float getValue() const {
 		return value;
 	}
 
-	float getWeight() {
+	float getWeight() const {
 		return weight;
 	}
 
 	Vector4uc getColor() {
 		return color;
+	}
+	bool isValidColor() {
+	    return color != Vector4uc{0, 0, 0 ,0};
 	}
 
 	void setValue(float v) {
@@ -78,15 +81,15 @@ private:
 	//! max-min
 	Vector3f diag;
 
-	float ddx, ddy, ddz;
-	float dddx, dddy, dddz;
+	float ddx{}, ddy{}, ddz{};
+	float dddx{}, dddy{}, dddz{};
 
 	//! Number of cells in x, y and z-direction.
-	uint dx, dy, dz;
+	uint dx{}, dy{}, dz{};
 
-	Voxel* vol;
+	Voxel* vol{};
 
-	uint m_dim;
+	uint m_dim{};
 
 	//map that tracks raycasted voxels
 	std::unordered_map<Vector3i, bool, matrix_hash<Vector3i>> visitedVoxels;
@@ -124,7 +127,7 @@ public:
 	Vector3f calculateNormal(const Vector3f& point);
 
 	// trilinear interpolation of a point in voxel grid coordinates to get SDF at the point
-	float trilinearInterpolation(const Vector3f& p);
+	float trilinearInterpolation(const Vector3f& p) const;
 		
 	// using given frame calculate TSDF values for all voxels in the grid
 	void integrate(Frame frame);
@@ -270,14 +273,9 @@ public:
 		return visitedVoxels;
 	}
 
-	//! Updates the color of a voxel
-	void updateColor(Vector3i voxelCoords, Vector4uc& color, bool notVisited);
-
-	//! Updates the color of a voxel for a point p in grid coordinates
-	void updateColor(Vector3f point, Vector4uc& color, bool notVisited);
 
 	//! Checks if the point in grid coordinates is in the volume
-	bool isPointInVolume(Vector3f& point) {
+	bool isPointInVolume(Vector3f& point) const {
 		return
 			!(
 				point[0] > dx - 1 ||

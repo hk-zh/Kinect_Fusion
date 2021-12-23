@@ -17,7 +17,7 @@ class Frame {
 public:
     Frame();
     Frame(const Frame& other);
-    Frame(const float* depthMap, const BYTE* colorMap,
+    Frame(const float* depthMap, BYTE* colorMap,
         const Eigen::Matrix3f& depthIntrinsics,
         const Eigen::Matrix4f& depthExtrinsics,
         const Eigen::Matrix4f& trajectoryInv, int depthWidth, int depthHeight);
@@ -39,7 +39,7 @@ public:
     const Eigen::Matrix4f getExtrinsicMatrix();
     const Eigen::Matrix3f getIntrinsicMatrix();
     const float* getDepthMap();
-    const BYTE* getColorMap();
+    BYTE* getColorMap();
     bool writeMesh(const std::string& filename, float edgeThreshold);
 
     //+++++++++++++++++++++++++++++++++++++++++++++
@@ -69,7 +69,7 @@ private:
     int depthWidth;
     int depthHeight;
     const float* depthMap;
-    const BYTE* colorMap;
+    BYTE* colorMap;
     std::shared_ptr<std::vector<Eigen::Vector3f>> mVertices;
     std::shared_ptr<std::vector<Eigen::Vector3f>> mNormals;
     std::shared_ptr<std::vector<Eigen::Vector3f>> mVerticesGlobal;

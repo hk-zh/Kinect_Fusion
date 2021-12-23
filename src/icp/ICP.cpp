@@ -11,41 +11,58 @@ ICP::ICP(Frame &_prevFrame, Frame &_curFrame, const double distanceThreshold,
           distanceThreshold(distanceThreshold),
           normalThreshold(normalThreshold) {}
 
-Matrix4f ICP::estimatePose(
+bool ICP::estimatePose(
         Eigen::Matrix4f &estimatedPose,
         int iterationsNum
 ) {
-
+    bool succ = true;
     for (size_t iteration = 0; iteration < iterationsNum; iteration++) {
         const std::vector<std::pair<size_t, size_t>> correspondenceIds = findIndicesOfCorrespondingPoints(
                 estimatedPose);
-
+        if (correspondenceIds.size() < 100) {
+            succ = false;
+            break;
+        }
         std::cout << "# corresponding points: " << correspondenceIds.size()
                   << std::endl;
         std::cout << "# total number of points: "
                   << curFrame.getVertexMap().size() << std::endl;
 
-        int nPoints = correspondenceIds.size();
+        int nPoints = (int) correspondenceIds.size();
         Eigen::Matrix3f rotationEP = estimatedPose.block(0, 0, 3, 3);
         Eigen::Vector3f translationEP = estimatedPose.block(0, 3, 3, 1);
 
-        MatrixXf A = MatrixXf::Zero(nPoints, 6);
-        VectorXf b = VectorXf::Zero(nPoints);
+        MatrixXf A = MatrixXf::Zero(4 * nPoints, 6);
+        VectorXf b = VectorXf::Zero(4 * nPoints);
 
         for (size_t i = 0; i < nPoints; i++) {
             auto pair = correspondenceIds[i];
-            Eigen::Vector3f x = rotationEP * curFrame.getVertexGlobal(pair.second) + translationEP;
-            Eigen::Vector3f y = prevFrame.getVertexGlobal(pair.first);
+            Eigen::Vector3f s = rotationEP * curFrame.getVertexGlobal(pair.second) + translationEP;
+            Eigen::Vector3f d = prevFrame.getVertexGlobal(pair.first);
             Eigen::Vector3f n = prevFrame.getNormalGlobal(pair.first);
 
-            A(i, 0) = n(2) * x(1) - n(1) * x(2);
-            A(i, 1) = n(0) * x(2) - n(2) * x(0);
-            A(i, 2) = n(1) * x(0) - n(0) * x(1);
-            A(i, 3) = n(0);
-            A(i, 4) = n(1);
-            A(i, 5) = n(2);
-            b(i) = n(0) * y(0) + n(1) * y(1) + n(2) * y(2) - n(0) * x(0) -
-                   n(1) * x(1) - n(2) * x(2);
+            A(4 * i, 0) = n.z() * s.y() - n.y() * s.z();
+            A(4 * i, 1) = n.x() * s.z() - n.z() * s.x();
+            A(4 * i, 2) = n.y() * s.x() - n.x() * s.y();
+            A.block<1, 3>(4 * i, 3) = n;
+            b(4 * i) = (d - s).dot(n);
+
+
+            //Add the point-to-point constraints to the system
+            A.block<3,3>(4 * i + 1, 0) <<
+                                       0.0f, s.z(), -s.y(),
+                    -s.z(), 0.0f, s.x(),
+                    s.y(), -s.x(), 0.0f;
+            A.block<3, 3>(4 * i + 1, 3).setIdentity();
+            b.segment<3>(4 * i +1) = d - s;
+
+            // Optionally, apply a higher weight to point-to-plane correspondences
+            float pointToPlaneWeight = 1.0f;
+            float pointToPointWeight = 0.1f;
+            A.block<1, 6>(4 * i, 0) *= pointToPlaneWeight;
+            b(4 * i) *= pointToPlaneWeight;
+            A.block<3, 6>(4 * i + 1, 0) *= pointToPointWeight;
+            b.segment<3>(4 * i + 1) *= pointToPointWeight;
         }
 
         VectorXf x(6);
@@ -63,7 +80,7 @@ Matrix4f ICP::estimatePose(
         curentPose.block<3, 1>(0, 3) = translation;
         estimatedPose = curentPose * estimatedPose;
     }
-    return estimatedPose;
+    return succ;
 }
 
 // Helper method to find corresponding points between curent frame and

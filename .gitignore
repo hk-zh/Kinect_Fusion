@@ -31,10 +31,19 @@
 *.out
 *.app
 
+# IDE
+/cmake-build-debug
+/cmake-build-release
+/.idea
 
 /build
 /libs
 /data
 /output
+/output_coke
+/output_dishes
+/output_plant_128
+/output_teddy
+/output_teddy_new
 .DS_Store
 .vscode/
