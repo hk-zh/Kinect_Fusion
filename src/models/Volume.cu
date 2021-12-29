@@ -1,6 +1,6 @@
 #include "Volume.cuh"
 #define TRUNCATION 0.06f
-#include <float.h>
+#include <cmath>
 Volume::Volume() {}
 
 //! Initializes an empty volume dataset.
@@ -230,10 +230,12 @@ __global__ void integrate_cuda(const float* depthMap, const BYTE* colorMap,
         //Pi = frame.projectOntoImgPlane(Pc);
         Eigen::Vector3f projected = intrinsicMatrix * Pc;
         if (projected.z() == 0) {
-            Pi =  Eigen::Vector2i(MINF, MINF);
+            Pi =  Eigen::Vector2i(-INFINITY, -INFINITY);
         }
-        projected /= projected.z();
-        Pi = Eigen::Vector2i((int)round(projected.x()), (int)round(projected.y()));
+        else{
+            projected /= projected.z();
+            Pi = Eigen::Vector2i((int)round(projected.x()), (int)round(projected.y()));
+        }
 
         //std::cout << Pg << std::endl << Pc << std::endl << Pi << std::endl;
 
@@ -250,7 +252,7 @@ __global__ void integrate_cuda(const float* depthMap, const BYTE* colorMap,
             index = Pi.y() * width + Pi.x();
             depth = depthMap[index];
 
-            if (depth == -1.0f)
+            if (depth == -INFINITY)
                 continue;
 
             //std::cout << "Odbok!!\n";
@@ -278,7 +280,7 @@ __global__ void integrate_cuda(const float* depthMap, const BYTE* colorMap,
             color = colors[prevIdx];
 
             // if we are doing the integration for the first time
-            if (value == FLT_MAX) {
+            if (value == INFINITY) {
                 value = 0;
                 weight = 0;
                 color = Vector4uc{ 0, 0, 0, 0 };
@@ -315,6 +317,18 @@ __global__ void integrate_cuda(const float* depthMap, const BYTE* colorMap,
 
 
 void Volume::integrate(Frame frame) {
+//    Vector3f a = Vector3f(-INFINITY,-INFINITY,-INFINITY);
+//    bool b = a.allFinite();
+//    std::cout << b << std::endl;
+//    Vector3f a_ = Vector3f(-std::numeric_limits<float>::infinity(),-std::numeric_limits<float>::infinity(),-std::numeric_limits<float>::infinity());
+//    bool b_ = a_.allFinite();
+//    std::cout << b_ << std::endl;
+//
+//    bool same = b == b_;
+//    std::cout<<same<<std::endl;
+//
+//
+//    return;
     //called_by_main();
     //return;
     const Matrix4f worldToCamera = frame.getExtrinsicMatrix();

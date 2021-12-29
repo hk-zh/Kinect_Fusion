@@ -62,7 +62,7 @@ public:
 			for (unsigned int u = 0; u < sensor.GetDepthImageWidth(); ++u) {
 				unsigned int idx = v * sensor.GetDepthImageWidth() + u; // linearized index
 				float depth = depthMap[idx];
-				if (depth == -1.0f) {
+				if (depth == MINF) {
 					m_vertices[idx].position = Vector4f(MINF, MINF, MINF, MINF);
 					m_vertices[idx].color = Vector4uc(0, 0, 0, 0);
 				}
