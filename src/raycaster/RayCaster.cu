@@ -1,4 +1,4 @@
-#include "RayCaster.h"
+#include "RayCaster.cuh"
 
 //RayCaster::RayCaster() {}
 
@@ -203,5 +203,10 @@ Frame& RayCaster::rayCast() {
 	std::cout << "RayCast done!" << std::endl;
 
 	return frame;
+}
+
+Frame &RayCaster::rayCast_cuda() {
+    start_raycast(frame, vol);
+    return frame;
 }
 

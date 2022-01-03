@@ -3,9 +3,9 @@
 #ifndef RAYCASTER_H
 #define RAYCASTER_H
 
-#include "Volume.h"
-#include "Frame.h"
-#include "Ray.h"
+#include "Volume.cuh"
+#include "Frame.cuh"
+#include "Ray.cuh"
 
 class RayCaster {
 private:
@@ -21,6 +21,7 @@ public:
 	void changeFrame(Frame& frame);
 	void changeVolume(Volume& vol);
 	Frame& rayCast();
+    Frame& rayCast_cuda();
 };
-
+extern "C" void start_raycast(Frame& frame, Volume& volume);
 #endif // !RAYCASTER_H

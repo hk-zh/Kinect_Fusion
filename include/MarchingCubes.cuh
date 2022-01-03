@@ -4,7 +4,7 @@
 #define MARCHING_CUBES_H
 
 #include "SimpleMesh.h"
-#include "Volume.h"
+#include "Volume.cuh"
 
 struct MC_Triangle {
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW

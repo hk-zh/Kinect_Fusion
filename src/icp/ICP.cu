@@ -1,4 +1,4 @@
-#include "ICP.h"
+#include "ICP.cuh"
 
 #include <iostream>
 #include <memory>

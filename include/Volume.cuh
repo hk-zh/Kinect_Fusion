@@ -5,50 +5,52 @@
 
 #include <limits>
 #include "Eigen.h"
-#include "Frame.h"
+#include "Frame.cuh"
 #include <unordered_map>
 #include <vector>
+#include "cuda.h"
+
 
 typedef unsigned int uint;
 
 using namespace Eigen;
 
 class Voxel
-        : public std::__1::error_code {
+        : public std::error_code {
 private:
 	float value{};
 	float weight{};
 	Vector4uc color;
 
 public:
-	Voxel() {}
+	__device__ __host__ Voxel() {}
 
-	Voxel(float value_, float weight_, Vector4uc color_) : value{ value_ }, weight{ weight_ }, color{ color_ } {}
+    __device__ __host__ Voxel(float value_, float weight_, Vector4uc color_) : value{ value_ }, weight{ weight_ }, color{ color_ } {}
 
-	float getValue() const {
+    __device__ __host__ float getValue() const {
 		return value;
 	}
 
-	float getWeight() const {
+    __device__ __host__ float getWeight() const {
 		return weight;
 	}
 
-	Vector4uc getColor() {
+    __device__ __host__ Vector4uc getColor() {
 		return color;
 	}
-	bool isValidColor() {
+    __device__ __host__ bool isValidColor() {
 	    return color != Vector4uc{0, 0, 0 ,0};
 	}
 
-	void setValue(float v) {
+    __device__ __host__ void setValue(float v) {
 		value = v;
 	}
 
-	void setWeight(float w) {
+    __device__ __host__ void setWeight(float w) {
 		weight = w;
 	}
 
-	void setColor(Vector4uc c) {
+    __device__ __host__ void setColor(Vector4uc c) {
 		color = c;
 	}
 };
@@ -80,8 +82,7 @@ private:
 
 	//! max-min
 	Vector3f diag;
-
-	float ddx{}, ddy{}, ddz{};
+    float ddx{}, ddy{}, ddz{};
 	float dddx{}, dddy{}, dddz{};
 
 	//! Number of cells in x, y and z-direction.
@@ -103,6 +104,13 @@ public:
 	Volume(Vector3f& min_, Vector3f& max_, uint dx_ = 10, uint dy_ = 10, uint dz_ = 10, uint dim = 1);
 
 	~Volume();
+
+    inline float getddx(){return ddx;}
+    inline float getddy(){return ddy;}
+    inline float getddz(){return ddz;}
+
+    inline Voxel* get_vol(){return vol;}
+
 
 	inline static Vector3i intCoords(const Vector3f& p) {
 		Vector3i coord{ 0, 0, 0 };
@@ -130,6 +138,9 @@ public:
 		
 	// using given frame calculate TSDF values for all voxels in the grid
 	void integrate(Frame frame);
+
+    // integrate with cuda_boost boost
+    void integrate_with_cuda(Frame& frame);
 
 	//! Zeros out the memory
 	void zeroOutMemory();
@@ -200,6 +211,12 @@ public:
 
 	//! Returns the Data.
 	Voxel* getData();
+
+    //! Returns min
+    inline Vector3f getmin() const { return min; }
+
+    //! Returns max
+    inline Vector3f getmax() const { return max; }
 
 	//! Returns number of cells in x-dir.
 	inline uint getDimX() const { return dx; }
@@ -311,5 +328,5 @@ private:
 	void compute_ddx_dddx();
 
 };
-
+extern "C" void start(Frame& frame, Volume& volume);
 #endif // VOLUME_H

@@ -1,4 +1,4 @@
-#include "Volume.h"
+#include "Volume.cuh"
 
 #define TRUNCATION 0.05f
 
@@ -251,4 +251,9 @@ void Volume::integrate(Frame frame) {
 
 
 }
+
+void Volume::integrate_with_cuda(Frame &frame) {
+    start(frame, *this);
+}
+
 

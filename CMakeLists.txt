@@ -1,12 +1,13 @@
 cmake_minimum_required(VERSION 3.6)
 
 set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE TYPE INTERNAL FORCE)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_STANDARD 14)
 
 option(USE_SYSTEM_FLANN "Use system pre-installed flann" ON)
 
-project(kinect_fusion)
+project(kinect_fusion CXX CUDA)
 
 # Mac only stuff
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -23,6 +24,7 @@ set(MODELS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/models CACHE PATH "Path to models
 set(LIBRARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs CACHE PATH "Path to lib folder")
 set(Eigen3_INCLUDE_DIR ${LIBRARY_DIR}/eigen/ CACHE PATH "Path to Eigen source folder")
 set(Ceres_DIR ${LIBRARY_DIR}/Ceres/CMake CACHE PATH "Path to Ceres build folder")
+set(CUDA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/cuda_boost CACHE PATH "Path to cuda booster source folder")
 set(Ceres_INCLUDE_DIR ${Ceres_DIR}/../include)
 
 
@@ -61,34 +63,39 @@ set(HEADERS
         ${INCLUDE_DIR}/Eigen.h
         ${INCLUDE_DIR}/FreeImageHelper.h
         ${INCLUDE_DIR}/VirtualSensor.h
-        ${INCLUDE_DIR}/ICP.h
-        ${INCLUDE_DIR}/Frame.h
-        ${INCLUDE_DIR}/Volume.h
+        ${INCLUDE_DIR}/ICP.cuh
+        ${INCLUDE_DIR}/Frame.cuh
+        ${INCLUDE_DIR}/Volume.cuh
         ${INCLUDE_DIR}/SimpleMesh.h
-        ${INCLUDE_DIR}/MarchingCubes.h
-        ${INCLUDE_DIR}/RayCaster.h
-        ${INCLUDE_DIR}/Ray.h
+        ${INCLUDE_DIR}/MarchingCubes.cuh
+        ${INCLUDE_DIR}/RayCaster.cuh
+        ${INCLUDE_DIR}/Ray.cuh
         ${INCLUDE_DIR}/NearestNeighbour.h
         ${INCLUDE_DIR}/ProcrustesAligner.h
         ${INCLUDE_DIR}/ICPOptimizer.h
         ${INCLUDE_DIR}/NearestNeighbour.h
-        ${INCLUDE_DIR}/ProcrustesAligner.h )
+        ${INCLUDE_DIR}/ProcrustesAligner.h)
 set(SOURCES
-        main.cpp
+        main.cu
         ${HELPERS_DIR}/FreeImageHelper.cpp
-        ${MODELS_DIR}/Frame.cpp
-        ${MODELS_DIR}/Volume.cpp
-        ${ICP_DIR}/ICP.cpp
-        ${RAYCASTER_DIR}/RayCaster.cpp
-        ${RAYCASTER_DIR}/Ray.cpp
+        ${MODELS_DIR}/Frame.cu
+        ${MODELS_DIR}/Volume.cu
+        ${ICP_DIR}/ICP.cu
+        ${RAYCASTER_DIR}/RayCaster.cu
+        ${RAYCASTER_DIR}/Ray.cu
         ${ICP_DIR}/ICPOptimizer.cpp
         ${ICP_DIR}/CeresICPOptimizer.cpp
-        ${ICP_DIR}/LinearICPOptimizer.cpp)
+        ${ICP_DIR}/LinearICPOptimizer.cpp
+        ${CUDA_DIR}/integrate.cu
+        ${CUDA_DIR}/raycast.cu
+        )
 
+find_package (glog 0.5.0 REQUIRED)
 link_directories(${FreeImage_LIBRARY_DIR} ${Flann_LIBRARY_DIR})
 add_executable(kinect_fusion ${SOURCES} ${HEADERS})
 target_include_directories(kinect_fusion PUBLIC ${Flann_INCLUDE_DIR} ${Eigen3_INCLUDE_DIR} ${FreeImage_INCLUDE_DIR} ${INCLUDE})
-target_link_libraries(kinect_fusion general freeimage ceres flann)
+target_link_libraries(kinect_fusion general freeimage ceres flann glog)
+
 
 # On Windows copy dll to executable folder
 if (WIN32)

@@ -2,14 +2,14 @@
 #include <fstream>
 #include <iostream>
 
-#include "ICP.h"
-#include "RayCaster.h"
-#include "Frame.h"
-#include "Volume.h"
+#include "ICP.cuh"
+#include "RayCaster.cuh"
+#include "Frame.cuh"
+#include "Volume.cuh"
 #include "VirtualSensor.h"
 #include "Eigen.h"
 #include "SimpleMesh.h"
-#include "MarchingCubes.h"
+#include "MarchingCubes.cuh"
 #include "ICPOptimizer.h"
 
 #define DISTANCE_THRESHOLD 0.05
@@ -22,6 +22,7 @@
 #define ICP_ITERATIONS 20
 #define USE_ICP_FROM_CLASS false
 #define SAMPLE_FREQUENCY 10
+#define USE_CUDA true
 
 
 
@@ -43,6 +44,17 @@ int main() {
     std::string filenameIn = "../data/rgbd_dataset_freiburg1_plant/";
     std::string filenameBaseOut = std::string("../output_plant_128/mesh_");
     std::string filenameBaseOutMC = std::string("../output_plant_128/MCmesh_");
+    if (USE_CUDA){
+        filenameBaseOut = std::string("../output_plant_128_cuda/mesh_");
+        filenameBaseOutMC = std::string("../output_plant_128_cuda/MCmesh_");
+    }
+//    std::string filenameIn = "../data/rgbd_dataset_freiburg1_xyz/";
+//    std::string filenameBaseOut = std::string("../output_xyz/mesh_");
+//    std::string filenameBaseOutMC = std::string("../output_xyz/MCmesh_");
+//    if (USE_CUDA){
+//        filenameBaseOut = std::string("../output_xyz_cuda/mesh_");
+//        filenameBaseOutMC = std::string("../output_xyz_cuda/MCmesh_");
+//    }
 
     // load video
     std::cout << "Initialize virtual sensor..." << std::endl;
@@ -93,7 +105,11 @@ int main() {
 
 
         if (frameCount == 0) {
-            volume.integrate(curFrameFiltered);
+            if (USE_CUDA){
+                volume.integrate_with_cuda(curFrameFiltered);
+            }else{
+                volume.integrate(curFrameFiltered);
+            }
             prevFrame = curFrame;
         } else {
             /* ==============  ICP: old version  ============== */
@@ -116,9 +132,18 @@ int main() {
                 std::cout << pose_cur << std::endl;
                 curFrame.setExtrinsicMatrix(pose_cur.inverse());
                 curFrameFiltered.setExtrinsicMatrix(pose_cur.inverse());
-                volume.integrate(curFrameFiltered);
+                if (USE_CUDA){
+                    volume.integrate_with_cuda(curFrameFiltered);
+                }else{
+                    volume.integrate(curFrameFiltered);
+                }
                 rc.changeFrame(curFrame);
-                curFrame = rc.rayCast();
+                if (USE_CUDA){
+                    curFrame = rc.rayCast_cuda();
+                }else{
+                    curFrame = rc.rayCast();
+                }
+
                 prevFrame = curFrame;
                 pose_prev = pose_cur;
             } else {

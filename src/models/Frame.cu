@@ -1,4 +1,4 @@
-#include "Frame.h"
+#include "Frame.cuh"
 
 #include <iostream>
 #include <fstream>

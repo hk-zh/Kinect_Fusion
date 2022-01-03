@@ -53,11 +53,9 @@ public:
 
     //+++++++++++++++++++++++++++++++++++++++++++++
 
-private:
-    void computeVertexMap(const float* depthMap,
-        const Eigen::Matrix3f& depthIntrinsics, int depthWidth,
-        int depthHeight);
-    void computeNormalMap(int depthWidth, int depthHeight);
+    std::shared_ptr<std::vector<Eigen::Vector3f>> mVerticesGlobal;
+    std::shared_ptr<std::vector<Eigen::Vector3f>> mVertices;
+
     std::vector<Eigen::Vector3f> transformPoints(
         const std::vector<Eigen::Vector3f>& points,
         const Eigen::Matrix4f& transformation);
@@ -66,14 +64,20 @@ private:
         const std::vector<Eigen::Vector3f>& points,
         const Eigen::Matrix3f& rotation);
 
+    BYTE* colorMap;
+
+    std::shared_ptr<std::vector<Eigen::Vector3f>> mNormalsGlobal;
+    void computeNormalMap(int depthWidth, int depthHeight);
+
+private:
+    void computeVertexMap(const float* depthMap,
+        const Eigen::Matrix3f& depthIntrinsics, int depthWidth,
+        int depthHeight);
+
     int depthWidth;
     int depthHeight;
     const float* depthMap;
-    BYTE* colorMap;
-    std::shared_ptr<std::vector<Eigen::Vector3f>> mVertices;
     std::shared_ptr<std::vector<Eigen::Vector3f>> mNormals;
-    std::shared_ptr<std::vector<Eigen::Vector3f>> mVerticesGlobal;
-    std::shared_ptr<std::vector<Eigen::Vector3f>> mNormalsGlobal;
     Eigen::Matrix4f extrinsicMatrix;
     Eigen::Matrix3f intrinsicMatrix;
 };
