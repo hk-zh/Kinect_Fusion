@@ -11,6 +11,8 @@
 #include <thrust/fill.h>
 #include <cmath>
 #include <thrust/sequence.h>
+#include <fstream>
+#include <iostream>
 
 class Ray_cuda{
 private:
@@ -141,19 +143,18 @@ __global__ void raycast_parallel(int width, int height, uint dx, uint dy, uint d
                                  Matrix3f intrinsic_inverse,
                                  Vector3f min, Vector3f max, Voxel* voxels,
                                  float ddx, float ddy, float ddz, Vector3f translation, Matrix3f rotationMatrix,
-                                 Vector3f* output_vertices_global_cuda, Vector4uc* output_colors_global_cuda){
+                                 Vector3f* output_vertices_global_cuda, Vector4uc* output_colors_global_cuda, bool* vistedVoxels){
 
 
     // Calculate the column index of the Pd element, denote by x
-    int j = blockIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
     // Calculate the row index of the Pd element, denote by y
-    int i = threadIdx.x;
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
     uint index = i * width + j;
 
-    //if (index >= width*height)
-      //  return;
-    output_vertices_global_cuda[index] = Vector3f (i,j,1);
-    return;
+    if (i >= height || j >= width)
+        return;
+
 
     //std::cout << i << " " << j << std::endl;
 
@@ -222,6 +223,7 @@ __global__ void raycast_parallel(int width, int height, uint dx, uint dy, uint d
             v = gridToWorld(ray_previous, min, max, ddx, ddy, ddz);
             output_vertices_global_cuda[index] = v;
             output_colors_global_cuda[index]=voxels[ray_previous_int.x()*dy*dz + ray_previous_int.y()*dz + ray_previous_int.z()].getColor();
+            vistedVoxels[]
 //            if (!vol.voxelVisited(ray_previous)) {
 //                vol.setVisited(ray_previous_int);
 //            }
@@ -323,6 +325,7 @@ extern "C" void start_raycast(Frame& frame, Volume& volume){
 
     Vector3f *output_vertices_global_cuda;
     Vector4uc *output_colors_global_cuda;
+    bool* visitedVoxels;
 
 
 
@@ -341,6 +344,7 @@ extern "C" void start_raycast(Frame& frame, Volume& volume){
     cudaMalloc(&output_vertices_global_cuda, width*height* sizeof(Vector3f));
     cudaMalloc(&output_colors_global_cuda, width*height* sizeof(Vector4uc));
     cudaMalloc(&vol_cuda, dx * dy * dz * sizeof(Voxel));
+    cudaMalloc(&visitedVoxels, dx * dy * dz * sizeof(bool));
 
 
     // copy data to device
@@ -355,46 +359,53 @@ extern "C" void start_raycast(Frame& frame, Volume& volume){
     std::cout << "RayCast starting..." << std::endl;
     std::cout << "Height: "<<height<<" Width: "<<width << std::endl;
 
+    const dim3 threads(32, 32);
+    const dim3 blocks(
+            (height + threads.x - 1) / threads.x,
+            (width + threads.y - 1) / threads.y);
 
-
-    raycast_parallel<<<480,640>>>(width, height, dx, dy, dz,
+    raycast_parallel<<<blocks,threads>>>(width, height, dx, dy, dz,
                                        intrinsic_inverse,
                                        min, max, vol_cuda,
                                        volume.getddx(), volume.getddy(), volume.getddz(),
-                                       translation, rotationMatrix, output_vertices_global_cuda, output_colors_global_cuda);
+                                       translation, rotationMatrix, output_vertices_global_cuda, output_colors_global_cuda, visitedVoxels);
 
     Vector3f* output_vertices_global_raw = (Vector3f*)std::malloc(width*height* sizeof(Vector3f));
     Vector4uc* output_colors_global_raw = (Vector4uc*)std::malloc(width*height* sizeof(Vector4uc));
+    bool* visitedVoxels_host = (bool*)std::malloc(dx * dy * dz * sizeof(bool));
 
     auto err = cudaGetErrorString(cudaMemcpy(
             output_vertices_global_raw, output_vertices_global_cuda, width*height* sizeof(Vector3f),
             cudaMemcpyDeviceToHost));
     std::cout<<err<<std::endl;
+    cudaMemcpy(
+            visitedVoxels_host, visitedVoxels, dx * dy * dz * sizeof(bool),
+            cudaMemcpyDeviceToHost);
 
 
 
-    /////////////////////////////
-    int count = 0;
-    int num=0;
-    int j_b=0;
-    int i_b=0;
-    int dim_b =0;
-    for(int i=0;i<height*width;i++){
-        Vector3f v = *(output_vertices_global_raw+i);
-        i_b = i_b > v.x() ? i_b : v.x();
-        j_b = j_b > v.y() ? j_b : v.y();
-        dim_b = dim_b > v.z() ? dim_b : v.z();
-        if((*(output_vertices_global_raw+i)).z() == 1)
-            count++;
-        num++;
-
-    }
-    std::cout<<"count: "<<count<<"num"<<num<<std::endl;
-    std::cout<<"biggest i: "<<i_b<<" biggest j: "<<j_b <<"biggest dim"<<dim_b<<std::endl;
-
-
-
-    /////////////////////////////
+//    /////////////////////////////
+//    int count = 0;
+//    int num=0;
+//    int j_b=0;
+//    int i_b=0;
+//    int dim_b =0;
+//    for(int i=0;i<height*width;i++){
+//        Vector3f v = *(output_vertices_global_raw+i);
+//        i_b = i_b > v.x() ? i_b : v.x();
+//        j_b = j_b > v.y() ? j_b : v.y();
+//        dim_b = dim_b > v.z() ? dim_b : v.z();
+//        if((*(output_vertices_global_raw+i)).z() == 1)
+//            count++;
+//        num++;
+//
+//    }
+//    std::cout<<"count: "<<count<<"num"<<num<<std::endl;
+//    std::cout<<"biggest i: "<<i_b<<" biggest j: "<<j_b <<"biggest dim"<<dim_b<<std::endl;
+//
+//
+//
+//    /////////////////////////////
 
     cudaMemcpy(
             output_colors_global_raw, output_colors_global_cuda, width*height* sizeof(Vector4uc),
@@ -411,14 +422,23 @@ extern "C" void start_raycast(Frame& frame, Volume& volume){
     frame.mVerticesGlobal = output_vertices_global;
     //frame.mNormalsGlobal = output_normals_global;
     frame.mVertices = std::make_shared<std::vector<Vector3f>>(frame.transformPoints(*output_vertices_global, worldToCamera));
+
     frame.computeNormalMap(width, height);
     frame.mNormalsGlobal = std::make_shared<std::vector<Vector3f>>(frame.rotatePoints(frame.getNormalMap(), rotationMatrix));
+
+
+    std::ofstream myfile;
+    myfile.open ("./globalvertex_cuda.txt");
+    std::cout<<output_colors_global->size()<<std::endl;
     for (int i = 0; i < output_colors_global->size(); i++) {
         frame.colorMap[4*i] =(*output_colors_global)[i][0];
         frame.colorMap[4*i+1] =(*output_colors_global)[i][1];
         frame.colorMap[4*i+2] =(*output_colors_global)[i][2];
         frame.colorMap[4*i+3] =(*output_colors_global)[i][3];
+
+        myfile << (*output_vertices_global)[i]<< std::endl;
     }
+    myfile.close();
     std::cout << "RayCast done!" << std::endl;
 
 

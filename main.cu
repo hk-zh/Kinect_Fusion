@@ -168,7 +168,7 @@ int main() {
                 }
             }
 
-            if (frameCount % 100 == 1) {
+            if (frameCount % 50 == 1) {
                 std::stringstream ss;
                 ss << filenameBaseOutMC << frameCount << ".off";
 

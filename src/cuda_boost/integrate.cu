@@ -13,7 +13,7 @@
 __global__ void integrate_cuda(const float* depthMap, const BYTE* colorMap,
                                int width, int height, uint dx, uint dy, uint dz,
                                Matrix4f extrinsicMatrix, Matrix3f intrinsicMatrix, Vector3f* mNormalsGlobal,
-                               Voxel* vol, Vector3f min, Vector3f max){
+                               Voxel* vol, Vector3f min, Vector3f max, Vector3f translationglobal){
     Vector3f Pg, Pc, ray, normal;
     Vector2i Pi;
     Vector4uc color;
@@ -36,8 +36,8 @@ __global__ void integrate_cuda(const float* depthMap, const BYTE* colorMap,
 
 
         //Pc = frame.projectPointIntoFrame(Pg);
-        const auto rotation = extrinsicMatrix.block(0, 0, 3, 3);
-        const auto translation = extrinsicMatrix.block(0, 3, 3, 1);
+        const Matrix3f rotation = extrinsicMatrix.block(0, 0, 3, 3);
+        const Vector3f translation = extrinsicMatrix.block(0, 3, 3, 1);
         Pc =  rotation * Pg + translation;
         //Pi = frame.projectOntoImgPlane(Pc);
         Eigen::Vector3f projected = intrinsicMatrix * Pc;
@@ -72,10 +72,11 @@ __global__ void integrate_cuda(const float* depthMap, const BYTE* colorMap,
             // calculate the sdf value
             lambda = (Pc / Pc.z()).norm();
 
-            sdf = depth - ((Pg - translation) / lambda).norm();
+
+            sdf = depth - ((Pg - translationglobal) / lambda).norm();
 
             // compute the weight as the angle between the ray from the voxel point and normal of the associated frame point devided by depth
-            ray = (Pg - translation).normalized();
+            ray = (Pg - translationglobal).normalized();
             //normal = frame.getNormalGlobal(index);
             normal = *(mNormalsGlobal+index);
 
@@ -159,9 +160,8 @@ extern "C" void start(Frame& frame, Volume& volume){
 
     //TODO copy all the params into cuda memory
 
-    float *dDepthMap, *dValues, *dWeights;
+    float *dDepthMap;
     Vector3f *dmNormalsGlobal;
-    Vector4uc *dColors;
     BYTE* dColorMap;
     Voxel* vol_cuda;
 
@@ -180,9 +180,6 @@ extern "C" void start(Frame& frame, Volume& volume){
 
     cudaMalloc(&dDepthMap, width * height * sizeof(float));
     cudaMalloc(&dColorMap, colormap_size * sizeof(BYTE));
-    cudaMalloc(&dValues, dx * dy * dz * sizeof(float));
-    cudaMalloc(&dWeights, dx * dy * dz * sizeof(float));
-    cudaMalloc(&dColors, dx * dy * dz * sizeof(Vector4uc));
     cudaMalloc(&dmNormalsGlobal, size * sizeof(Vector3f));
     cudaMalloc(&vol_cuda, dx * dy * dz * sizeof(Voxel));
 
@@ -213,9 +210,8 @@ extern "C" void start(Frame& frame, Volume& volume){
     integrate_cuda<<<blocks,threads>>>(dDepthMap, dColorMap,
                                        width, height, dx, dy, dz,
                                        worldToCamera, intrinsicMatrix, dmNormalsGlobal,
-                                       vol_cuda, min, max);
+                                       vol_cuda, min, max, translation);
 
-    cudaDeviceSynchronize();
 
 
 

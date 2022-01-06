@@ -194,13 +194,17 @@ Frame& RayCaster::rayCast() {
 	frame.mVertices = std::make_shared<std::vector<Vector3f>>(frame.transformPoints(*output_vertices_global, worldToCamera));
 	frame.computeNormalMap(width, height);
 	frame.mNormalsGlobal = std::make_shared<std::vector<Vector3f>>(frame.rotatePoints(frame.getNormalMap(), rotationMatrix));
+    std::ofstream myfile;
+    myfile.open ("./globalvertex.txt");
     for (int i = 0; i < output_colors_global->size(); i++) {
         frame.colorMap[4*i] =(*output_colors_global)[i][0];
         frame.colorMap[4*i+1] =(*output_colors_global)[i][1];
         frame.colorMap[4*i+2] =(*output_colors_global)[i][2];
         frame.colorMap[4*i+3] =(*output_colors_global)[i][3];
+        myfile << (*output_vertices_global)[i]<< std::endl;
     }
-	std::cout << "RayCast done!" << std::endl;
+    myfile.close();
+    std::cout << "RayCast done!" << std::endl;
 
 	return frame;
 }

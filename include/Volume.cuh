@@ -15,8 +15,7 @@ typedef unsigned int uint;
 
 using namespace Eigen;
 
-class Voxel
-        : public std::error_code {
+class Voxel{
 private:
 	float value{};
 	float weight{};
