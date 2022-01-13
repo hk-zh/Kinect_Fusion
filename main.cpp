@@ -150,13 +150,13 @@ int main() {
                 std::cout << "Marching Cubes started..." << std::endl;
                 SimpleMesh mesh;
 
-                std::unordered_map<Vector3i, bool, matrix_hash<Vector3i>> visitedVoxels = volume.getVisitedVoxels();
+               bool* visitedVoxels = volume.getVisitedVoxels();
 
-                for (auto &visitedVoxel : visitedVoxels) {
-                    Vector3i voxelCoords = visitedVoxel.first;
-                    ProcessVolumeCell(&volume, voxelCoords[0], voxelCoords[1], voxelCoords[2], 0.00f, &mesh);
-                }
-                /*
+//                for (auto &visitedVoxel : visitedVoxels) {
+//                    Vector3i voxelCoords = visitedVoxel.first;
+//                    ProcessVolumeCell(&volume, voxelCoords[0], voxelCoords[1], voxelCoords[2], 0.00f, &mesh);
+//                }
+
                 for (unsigned int x = 0; x < volume.getDimX() - 1; x++)
                 {
                     //std::cerr << "Marching Cubes on slice " << x << " of " << volume.getDimX() << std::endl;
@@ -165,11 +165,14 @@ int main() {
                     {
                         for (unsigned int z = 0; z < volume.getDimZ() - 1; z++)
                         {
-                            ProcessVolumeCell(&volume, x, y, z, 0.00f, &mesh);
+                            if (volume.voxelVisited(x, y, z)) {
+                                ProcessVolumeCell(&volume, x, y, z, 0.00f, &mesh);
+                            }
+
                         }
                     }
                 }
-                */
+
                 std::cout << "Marching Cubes done! " << mesh.getVertices().size() << " " << mesh.getTriangles().size()
                           << std::endl;
 

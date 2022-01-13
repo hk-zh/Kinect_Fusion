@@ -19,7 +19,7 @@ Volume::Volume(Vector3f& min_, Vector3f& max_, uint dx_, uint dy_, uint dz_, uin
 	vol = NULL;
 
 	vol = new Voxel[dx * dy * dz];
-
+	visitedVoxels = new bool[dx * dy * dz];
 	zeroOutMemory();
 	compute_ddx_dddx();
 }
@@ -27,6 +27,7 @@ Volume::Volume(Vector3f& min_, Vector3f& max_, uint dx_, uint dy_, uint dz_, uin
 Volume::~Volume()
 {
 	delete[] vol;
+	delete[] visitedVoxels;
 };
 
 //! Computes spacing in x,y,z-directions.
@@ -52,8 +53,11 @@ void Volume::compute_ddx_dddx()
 //! Zeros out the memory
 void Volume::zeroOutMemory()
 {
-	for (uint i1 = 0; i1 < dx * dy * dz; i1++)
-		vol[i1] = Voxel(std::numeric_limits<float>::max(), 0.0f, Vector4uc{ 0, 0, 0, 0 });
+	for (uint i1 = 0; i1 < dx * dy * dz; i1++){
+        vol[i1] = Voxel(std::numeric_limits<float>::max(), 0.0f, Vector4uc{ 0, 0, 0, 0 });
+        visitedVoxels[i1] = false;
+	}
+
 }
 
 //! Returns the Data.

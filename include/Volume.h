@@ -92,7 +92,9 @@ private:
 	uint m_dim{};
 
 	//map that tracks raycasted voxels
-	std::unordered_map<Vector3i, bool, matrix_hash<Vector3i>> visitedVoxels;
+//	std::unordered_map<Vector3i, bool, matrix_hash<Vector3i>> visitedVoxels;
+
+ 	bool* visitedVoxels;
 
 public:
 	
@@ -122,9 +124,6 @@ public:
 		return coord;
 	}
 
-
-	// estimate the normal for a point in voxel grid coordinates using voxel grid by calculating the numerical derivative of TSDF
-	Vector3f calculateNormal(const Vector3f& point);
 
 	// trilinear interpolation of a point in voxel grid coordinates to get SDF at the point
 	float trilinearInterpolation(const Vector3f& p) const;
@@ -217,17 +216,26 @@ public:
 	//! Checks if a voxel at coords (x, y, z) was raycasted
 	bool voxelVisited(int x, int y, int z) {
 		Vector3i pos = Vector3i{ x, y, z };
-		if (visitedVoxels.find(pos) != visitedVoxels.end())
-			return true;
-		else
-			return false;
+		unsigned int index = getPosFromTuple(x, y, z);
+		if (index >= dx * dy * dz) {
+		    return false;
+		} else {
+		    return visitedVoxels[index];
+		}
 	}
 
 	//! Checks if a voxel at point p in grid coords was raycasted
 	bool voxelVisited(Vector3f& p) {
 		Vector3i pi = Volume::intCoords(p);
-
 		return voxelVisited(pi[0], pi[1], pi[2]);
+	}
+
+	void setVisitedSingle(int x, int y, int z) {
+	    unsigned int index = getPosFromTuple(x, y, z);
+	    if (index < dx * dy * dz) {
+            visitedVoxels[index] = true;
+	    }
+
 	}
 
 	//! Adds voxel to visited voxels
@@ -245,14 +253,15 @@ public:
 		starting_points.emplace_back(Vector3i{ p_int[0] - 1, p_int[1] - 1, p_int[2] - 1 });
 
 		for (auto p_int : starting_points) {
-			visitedVoxels[Vector3i{ p_int[0] + 0, p_int[1] + 0, p_int[2] + 0 }] = true;
-			visitedVoxels[Vector3i{ p_int[0] + 1, p_int[1] + 0, p_int[2] + 0 }] = true;
-			visitedVoxels[Vector3i{ p_int[0] + 0, p_int[1] + 1, p_int[2] + 0 }] = true;
-			visitedVoxels[Vector3i{ p_int[0] + 1, p_int[1] + 1, p_int[2] + 0 }] = true;
-			visitedVoxels[Vector3i{ p_int[0] + 0, p_int[1] + 0, p_int[2] + 1 }] = true;
-			visitedVoxels[Vector3i{ p_int[0] + 1, p_int[1] + 0, p_int[2] + 1 }] = true;
-			visitedVoxels[Vector3i{ p_int[0] + 0, p_int[1] + 1, p_int[2] + 1 }] = true;
-			visitedVoxels[Vector3i{ p_int[0] + 1, p_int[1] + 1, p_int[2] + 1 }] = true;
+            setVisitedSingle( p_int[0] + 0, p_int[1] + 0, p_int[2] + 0);
+            setVisitedSingle( p_int[0] + 1, p_int[1] + 0, p_int[2] + 0);
+            setVisitedSingle( p_int[0] + 0, p_int[1] + 1, p_int[2] + 0);
+            setVisitedSingle( p_int[0] + 1, p_int[1] + 1, p_int[2] + 0);
+            setVisitedSingle( p_int[0] + 0, p_int[1] + 0, p_int[2] + 1);
+            setVisitedSingle( p_int[0] + 1, p_int[1] + 0, p_int[2] + 1);
+            setVisitedSingle( p_int[0] + 0, p_int[1] + 1, p_int[2] + 1);
+            setVisitedSingle( p_int[0] + 1, p_int[1] + 1, p_int[2] + 1);
+
 		}
 
 
@@ -263,13 +272,9 @@ public:
 		//	std::cout << "Bok!\n";
 	}
 
-	//! Removes vocel from visited voxels
-	void removeVisited(Vector3i& voxCoords) {
-		visitedVoxels.erase(voxCoords);
-	}
 
 	//! Get visited voxels map
-	std::unordered_map<Vector3i, bool, matrix_hash<Vector3i>>& getVisitedVoxels() {
+	bool* getVisitedVoxels() {
 		return visitedVoxels;
 	}
 
