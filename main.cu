@@ -18,7 +18,7 @@
 #define MAX_FRAME_NUM 2000
 #define MIN_POINT -0.7f, -0.7f, -0.5f
 #define MAX_POINT 0.7f, 0.7f, 1.0f
-#define RESOLUTION 256, 256, 256
+#define RESOLUTION 512, 512, 512
 #define ICP_ITERATIONS 20
 #define USE_ICP_FROM_CLASS false
 #define SAMPLE_FREQUENCY 10
@@ -139,7 +139,7 @@ int main() {
                 }
                 rc.changeFrame(curFrame);
                 if (USE_CUDA){
-                    curFrame = rc.rayCast();
+                    curFrame = rc.rayCast_cuda();
                 }else{
                     curFrame = rc.rayCast();
                 }

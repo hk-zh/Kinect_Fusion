@@ -139,7 +139,55 @@ __device__ float trilinearInterpolation(const Vector3f& p, Voxel* voxels, uint d
     return c;
 }
 
-__device__ void set_visited(bool* vistedVoxels){}
+__device__ 	void setVisitedSingle(int x, int y, int z, uint dx, uint dy, uint dz, bool* visitedVoxels) {
+    unsigned int index = x * dy * dz + y * dz + z;
+    if (index < dx * dy * dz) {
+        visitedVoxels[index] = true;
+    }
+
+}
+
+__device__ void set_visited(Vector3i& voxCoords, uint dx, uint dy, uint dz, bool* visitedVoxels){
+
+    Vector3i starting_points[8];
+    Vector3i p_int = voxCoords;
+
+    starting_points[0] = (Vector3i{ p_int[0] + 0, p_int[1] + 0, p_int[2] + 0 });
+    starting_points[0] = (Vector3i{ p_int[0] - 1, p_int[1] + 0, p_int[2] + 0 });
+    starting_points[0] = (Vector3i{ p_int[0] + 0, p_int[1] - 1, p_int[2] + 0 });
+    starting_points[0] = (Vector3i{ p_int[0] - 1, p_int[1] - 1, p_int[2] + 0 });
+    starting_points[0] = (Vector3i{ p_int[0] + 0, p_int[1] + 0, p_int[2] - 1 });
+    starting_points[0] = (Vector3i{ p_int[0] - 1, p_int[1] + 0, p_int[2] - 1 });
+    starting_points[0] = (Vector3i{ p_int[0] + 0, p_int[1] - 1, p_int[2] - 1 });
+    starting_points[0] = (Vector3i{ p_int[0] - 1, p_int[1] - 1, p_int[2] - 1 });
+
+    for (auto p_int : starting_points) {
+        setVisitedSingle( p_int[0] + 0, p_int[1] + 0, p_int[2] + 0, dx, dy, dz, visitedVoxels);
+        setVisitedSingle( p_int[0] + 1, p_int[1] + 0, p_int[2] + 0, dx, dy, dz, visitedVoxels);
+        setVisitedSingle( p_int[0] + 0, p_int[1] + 1, p_int[2] + 0, dx, dy, dz, visitedVoxels);
+        setVisitedSingle( p_int[0] + 1, p_int[1] + 1, p_int[2] + 0, dx, dy, dz, visitedVoxels);
+        setVisitedSingle( p_int[0] + 0, p_int[1] + 0, p_int[2] + 1, dx, dy, dz, visitedVoxels);
+        setVisitedSingle( p_int[0] + 1, p_int[1] + 0, p_int[2] + 1, dx, dy, dz, visitedVoxels);
+        setVisitedSingle( p_int[0] + 0, p_int[1] + 1, p_int[2] + 1, dx, dy, dz, visitedVoxels);
+        setVisitedSingle( p_int[0] + 1, p_int[1] + 1, p_int[2] + 1, dx, dy, dz, visitedVoxels);
+
+    }
+}
+__device__ 	bool voxelVisited(int x, int y, int z, uint dx, uint dy, uint dz, bool* visitedVoxels) {
+    Vector3i pos = Vector3i{ x, y, z };
+    unsigned int index = x * dy * dz + y * dz + z;
+    if (index >= dx * dy * dz) {
+        return false;
+    } else {
+        return visitedVoxels[index];
+    }
+}
+
+
+__device__ 	bool voxelVisited(Vector3f& p, uint dx, uint dy, uint dz, bool* visitedVoxels) {
+    Vector3i pi = intCoords(p);
+    return voxelVisited(pi[0], pi[1], pi[2], dx, dy, dz, visitedVoxels);
+}
 
 __global__ void raycast_parallel(int width, int height, uint dx, uint dy, uint dz,
                                  Matrix3f intrinsic_inverse,
@@ -226,9 +274,9 @@ __global__ void raycast_parallel(int width, int height, uint dx, uint dy, uint d
             output_vertices_global_cuda[index] = v;
             output_colors_global_cuda[index]=voxels[ray_previous_int.x()*dy*dz + ray_previous_int.y()*dz + ray_previous_int.z()].getColor();
             //vistedVoxels[]
-//            if (!vol.voxelVisited(ray_previous)) {
-//                vol.setVisited(ray_previous_int);
-//            }
+            if (!voxelVisited(ray_previous, dx, dy, dz, vistedVoxels)) {
+                set_visited(ray_previous_int, dx, dy, dz, vistedVoxels);
+            }
 
             break;
         } else if (voxels[ray_current_int.x()*dy*dz + ray_current_int.y()*dz + ray_current_int.z()].getValue() == 0) {
@@ -236,9 +284,9 @@ __global__ void raycast_parallel(int width, int height, uint dx, uint dy, uint d
             output_vertices_global_cuda[index] = v;
             output_colors_global_cuda[index] = voxels[ray_current_int.x()*dy*dz + ray_current_int.y()*dz + ray_current_int.z()].getColor();
 
-//            if (!vol.voxelVisited(ray_current)) {
-//                vol.setVisited(ray_current_int);
-//            }
+            if (!voxelVisited(ray_current, dx, dy, dz, vistedVoxels)) {
+                set_visited(ray_current_int, dx, dy, dz, vistedVoxels);
+            }
 
             break;
         } else if (
@@ -294,12 +342,13 @@ __global__ void raycast_parallel(int width, int height, uint dx, uint dy, uint d
             v = gridToWorld(p, min, max, ddx, ddy, ddz);
             output_vertices_global_cuda[index] = v;
 
-//            if (!vol.voxelVisited(ray_previous)) {
-//                vol.setVisited(ray_previous_int);
-//            }
+            if (!voxelVisited(ray_previous, dx, dy, dz, vistedVoxels)) {
+                set_visited(ray_previous_int, dx, dy, dz, vistedVoxels);
+            }
 //
-//            if (!vol.voxelVisited(ray_current))
-//                vol.setVisited(ray_current_int);
+            if (!voxelVisited(ray_current, dx, dy, dz, vistedVoxels)) {
+                set_visited(ray_current_int, dx, dy, dz, vistedVoxels);
+            }
             break;
         }
     }
@@ -342,17 +391,19 @@ extern "C" void start_raycast(Frame& frame, Volume& volume){
     Voxel* vol_cuda;
 
 
-
+    cudaMalloc(&visitedVoxels, dx*dy*dz*sizeof(bool));
     cudaMalloc(&output_vertices_global_cuda, width*height* sizeof(Vector3f));
     cudaMalloc(&output_colors_global_cuda, width*height* sizeof(Vector4uc));
     cudaMalloc(&vol_cuda, dx * dy * dz * sizeof(Voxel));
-    cudaMalloc(&visitedVoxels, dx * dy * dz * sizeof(bool));
 
 
     // copy data to device
 
     cudaMemcpy(
             vol_cuda, volume.get_vol(), dx * dy * dz * sizeof(Voxel),
+            cudaMemcpyHostToDevice);
+    cudaMemcpy(
+            visitedVoxels, volume.getVisitedVoxels(), dx * dy * dz * sizeof(bool),
             cudaMemcpyHostToDevice);
 
 
@@ -374,40 +425,22 @@ extern "C" void start_raycast(Frame& frame, Volume& volume){
 
     Vector3f* output_vertices_global_raw = (Vector3f*)std::malloc(width*height* sizeof(Vector3f));
     Vector4uc* output_colors_global_raw = (Vector4uc*)std::malloc(width*height* sizeof(Vector4uc));
-    bool* visitedVoxels_host = (bool*)std::malloc(dx * dy * dz * sizeof(bool));
+    //bool* visitedVoxels_host = (bool*)std::malloc(dx * dy * dz * sizeof(bool));
 
     auto err = cudaGetErrorString(cudaMemcpy(
             output_vertices_global_raw, output_vertices_global_cuda, width*height* sizeof(Vector3f),
             cudaMemcpyDeviceToHost));
     std::cout<<err<<std::endl;
     cudaMemcpy(
-            visitedVoxels_host, visitedVoxels, dx * dy * dz * sizeof(bool),
+            volume.getVisitedVoxels(), visitedVoxels, dx * dy * dz * sizeof(bool),
             cudaMemcpyDeviceToHost);
 
 
 
-//    /////////////////////////////
-//    int count = 0;
-//    int num=0;
-//    int j_b=0;
-//    int i_b=0;
-//    int dim_b =0;
-//    for(int i=0;i<height*width;i++){
-//        Vector3f v = *(output_vertices_global_raw+i);
-//        i_b = i_b > v.x() ? i_b : v.x();
-//        j_b = j_b > v.y() ? j_b : v.y();
-//        dim_b = dim_b > v.z() ? dim_b : v.z();
-//        if((*(output_vertices_global_raw+i)).z() == 1)
-//            count++;
-//        num++;
-//
-//    }
-//    std::cout<<"count: "<<count<<"num"<<num<<std::endl;
-//    std::cout<<"biggest i: "<<i_b<<" biggest j: "<<j_b <<"biggest dim"<<dim_b<<std::endl;
-//
-//
-//
-//    /////////////////////////////
+
+
+
+
 
     cudaMemcpy(
             output_colors_global_raw, output_colors_global_cuda, width*height* sizeof(Vector4uc),
@@ -429,23 +462,24 @@ extern "C" void start_raycast(Frame& frame, Volume& volume){
     frame.mNormalsGlobal = std::make_shared<std::vector<Vector3f>>(frame.rotatePoints(frame.getNormalMap(), rotationMatrix));
 
 
-//    std::ofstream myfile;
-//    myfile.open ("./globalvertex_cuda.txt");
-//    std::cout<<output_colors_global->size()<<std::endl;
-//    for (int i = 0; i < output_colors_global->size(); i++) {
-//        frame.colorMap[4*i] =(*output_colors_global)[i][0];
-//        frame.colorMap[4*i+1] =(*output_colors_global)[i][1];
-//        frame.colorMap[4*i+2] =(*output_colors_global)[i][2];
-//        frame.colorMap[4*i+3] =(*output_colors_global)[i][3];
-//
-//        myfile << (*output_vertices_global)[i]<< std::endl;
-//    }
-//    myfile.close();
+    //std::ofstream myfile;
+    //myfile.open ("./globalvertex_cuda.txt");
+    std::cout<<output_colors_global->size()<<std::endl;
+    for (int i = 0; i < output_colors_global->size(); i++) {
+        frame.colorMap[4*i] =(*output_colors_global)[i][0];
+        frame.colorMap[4*i+1] =(*output_colors_global)[i][1];
+        frame.colorMap[4*i+2] =(*output_colors_global)[i][2];
+        frame.colorMap[4*i+3] =(*output_colors_global)[i][3];
+
+        //myfile << (*output_vertices_global)[i]<< std::endl;
+    }
+    //myfile.close();
     std::cout << "RayCast done!" << std::endl;
 
 
     cudaFree(vol_cuda);
     cudaFree(output_vertices_global_cuda);
     cudaFree(output_vertices_global_cuda);
+    cudaFree(visitedVoxels);
 
 }
