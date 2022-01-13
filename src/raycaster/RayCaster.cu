@@ -201,7 +201,7 @@ Frame& RayCaster::rayCast() {
         frame.colorMap[4*i+1] =(*output_colors_global)[i][1];
         frame.colorMap[4*i+2] =(*output_colors_global)[i][2];
         frame.colorMap[4*i+3] =(*output_colors_global)[i][3];
-        myfile << (*output_vertices_global)[i]<< std::endl;
+        //myfile << (*output_vertices_global)[i]<< std::endl;
     }
     myfile.close();
     std::cout << "RayCast done!" << std::endl;

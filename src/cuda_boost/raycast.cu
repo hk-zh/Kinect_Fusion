@@ -139,6 +139,8 @@ __device__ float trilinearInterpolation(const Vector3f& p, Voxel* voxels, uint d
     return c;
 }
 
+__device__ void set_visited(bool* vistedVoxels){}
+
 __global__ void raycast_parallel(int width, int height, uint dx, uint dy, uint dz,
                                  Matrix3f intrinsic_inverse,
                                  Vector3f min, Vector3f max, Voxel* voxels,
@@ -223,7 +225,7 @@ __global__ void raycast_parallel(int width, int height, uint dx, uint dy, uint d
             v = gridToWorld(ray_previous, min, max, ddx, ddy, ddz);
             output_vertices_global_cuda[index] = v;
             output_colors_global_cuda[index]=voxels[ray_previous_int.x()*dy*dz + ray_previous_int.y()*dz + ray_previous_int.z()].getColor();
-            vistedVoxels[]
+            //vistedVoxels[]
 //            if (!vol.voxelVisited(ray_previous)) {
 //                vol.setVisited(ray_previous_int);
 //            }
@@ -427,18 +429,18 @@ extern "C" void start_raycast(Frame& frame, Volume& volume){
     frame.mNormalsGlobal = std::make_shared<std::vector<Vector3f>>(frame.rotatePoints(frame.getNormalMap(), rotationMatrix));
 
 
-    std::ofstream myfile;
-    myfile.open ("./globalvertex_cuda.txt");
-    std::cout<<output_colors_global->size()<<std::endl;
-    for (int i = 0; i < output_colors_global->size(); i++) {
-        frame.colorMap[4*i] =(*output_colors_global)[i][0];
-        frame.colorMap[4*i+1] =(*output_colors_global)[i][1];
-        frame.colorMap[4*i+2] =(*output_colors_global)[i][2];
-        frame.colorMap[4*i+3] =(*output_colors_global)[i][3];
-
-        myfile << (*output_vertices_global)[i]<< std::endl;
-    }
-    myfile.close();
+//    std::ofstream myfile;
+//    myfile.open ("./globalvertex_cuda.txt");
+//    std::cout<<output_colors_global->size()<<std::endl;
+//    for (int i = 0; i < output_colors_global->size(); i++) {
+//        frame.colorMap[4*i] =(*output_colors_global)[i][0];
+//        frame.colorMap[4*i+1] =(*output_colors_global)[i][1];
+//        frame.colorMap[4*i+2] =(*output_colors_global)[i][2];
+//        frame.colorMap[4*i+3] =(*output_colors_global)[i][3];
+//
+//        myfile << (*output_vertices_global)[i]<< std::endl;
+//    }
+//    myfile.close();
     std::cout << "RayCast done!" << std::endl;
 
 

@@ -139,7 +139,7 @@ int main() {
                 }
                 rc.changeFrame(curFrame);
                 if (USE_CUDA){
-                    curFrame = rc.rayCast_cuda();
+                    curFrame = rc.rayCast();
                 }else{
                     curFrame = rc.rayCast();
                 }
