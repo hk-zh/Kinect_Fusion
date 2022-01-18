@@ -4,7 +4,10 @@
 #include "ICPOptimizer.h"
 
 
-LinearICPOptimizer::LinearICPOptimizer() = default;
+LinearICPOptimizer::LinearICPOptimizer(unsigned int m_nIterations) : ICPOptimizer(m_nIterations) {
+
+}
+
 LinearICPOptimizer::~LinearICPOptimizer()
 {
     std::cout << "LinearICPOptimizer deleted!" << std::endl;
@@ -67,16 +70,15 @@ bool LinearICPOptimizer::estimatePose(std::vector<Vector3f> vertex_current, std:
 
         std::cout << "Optimization iteration done." << std::endl;
     }
-    initialPose = estimatedPose;
+    initialPose = estimatedPose.inverse();
     return success;
 }
 
 
 Matrix4f LinearICPOptimizer::estimatePosePointToPoint(const std::vector<Vector3f> &sourcePoints, const std::vector<Vector3f> &targetPoints)
 {
-    ProcrustesAligner procrustAligner;
-    Matrix4f estimatedPose = procrustAligner.estimatePose(sourcePoints, targetPoints);
-    // estimatedPose = Matrix4f::Identity();
+    ProcrustesAligner procrustesAligner;
+    Matrix4f estimatedPose = procrustesAligner.estimatePose(sourcePoints, targetPoints);
     return estimatedPose;
 }
 
@@ -136,11 +138,7 @@ Matrix4f LinearICPOptimizer::estimatePosePointToPlane(const std::vector<Vector3f
     Matrix4f estimatedPose = Matrix4f::Identity();
     estimatedPose.block<3, 3>(0, 0) = rotation;
     estimatedPose.block<3, 1>(0, 3) = translation;
-    // estimatedPose(0,0) = 1; estimatedPose(0,1) = -x[2]; estimatedPose(0,2) = x[1]; estimatedPose(0,3) = x[3];
-    // estimatedPose(1,0) = x[2]; estimatedPose(1,1) = 1; estimatedPose(1,2) = -x[0]; estimatedPose(1,3) = x[4];
-    // estimatedPose(2,0) = -x[1]; estimatedPose(2,1) = x[0]; estimatedPose(2,2) = 1; estimatedPose(2,3) = x[5];
-    // estimatedPose(3,0) = 0; estimatedPose(3,1) = 0; estimatedPose(3,2) = 0; estimatedPose(3,3) = 1;
-
-    // std::cout << estimatedPose << std::endl;
     return estimatedPose;
 }
+
+

@@ -3,9 +3,10 @@
 //
 
 #include "ICPOptimizer.h"
-#define MINIMUM_MATCHING_NUMBER 500
 
-CeresICPOptimizer::CeresICPOptimizer() = default;
+CeresICPOptimizer::CeresICPOptimizer(unsigned int m_nIterations) : ICPOptimizer(m_nIterations) {
+
+}
 
 bool CeresICPOptimizer::estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current,
                                          std::vector<Vector3f> vertex_prediction,
@@ -54,7 +55,6 @@ bool CeresICPOptimizer::estimatePose(std::vector<Vector3f> vertex_current, std::
         ceres::Solver::Summary summary;
         ceres::Solve(options, &problem, &summary);
         std::cout << summary.BriefReport() << std::endl;
-        //std::cout << summary.FullReport() << std::endl;
 
         // Update the current pose estimate (we always update the pose from the left, using left-increment notation).
         Matrix4f matrix = PoseIncrement<double>::convertToMatrix(poseIncrement);
@@ -117,3 +117,5 @@ void CeresICPOptimizer::prepareConstraints(const std::vector<Vector3f> &sourcePo
 CeresICPOptimizer::~CeresICPOptimizer() {
     std::cout << "CeresICPOptimizer deleted!" << std::endl;
 }
+
+

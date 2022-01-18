@@ -199,7 +199,7 @@ protected:
 
 class ICPOptimizer {
 public:
-    ICPOptimizer();
+    explicit ICPOptimizer(unsigned int m_nIterations = 20);
     void setMatchingMaxDistance(float maxDistance);
     void usePointToPlaneConstraints(bool bUsePointToPlaneConstraints);
     void setNbOfIterations(unsigned nIterations);
@@ -219,7 +219,7 @@ protected:
 class CeresICPOptimizer : public ICPOptimizer
 {
 public:
-    CeresICPOptimizer();
+    explicit CeresICPOptimizer(unsigned int m_nIterations = 20);
     bool estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current, std::vector<Vector3f> vertex_prediction, std::vector<Vector3f> normal_prediction, Matrix4f &initialPose ) override;
     ~CeresICPOptimizer();
 
@@ -232,7 +232,7 @@ private:
 class LinearICPOptimizer : public ICPOptimizer
 {
 public:
-    LinearICPOptimizer();
+    explicit LinearICPOptimizer(unsigned int m_nIterations = 20);
     ~LinearICPOptimizer();
     bool estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current, std::vector<Vector3f> vertex_prediction, std::vector<Vector3f> normal_prediction, Matrix4f &initialPose) override;
 

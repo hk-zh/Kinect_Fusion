@@ -13,7 +13,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(MACOSX TRUE)
 endif ()
 
-# Options
+# Make sure the paths are correct!
 set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src CACHE PATH "Path to source folder")
 set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include CACHE PATH "Path to source folder")
 set(HELPERS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/helpers CACHE PATH "Path to helpers folder")
@@ -32,7 +32,7 @@ if (WIN32)
     set(FreeImage_LIBRARY_DIR ${LIBRARY_DIR}/FreeImage/x64/ CACHE PATH "Path to FreeImage .lib/.dll folder")
 endif (WIN32)
 
-# Use 
+# Make sure the paths are correct!
 if (MACOSX)
     find_package(Ceres REQUIRED)
     set(FreeImage_INCLUDE_DIR "/usr/local/Cellar/freeimage/3.18.0/include")

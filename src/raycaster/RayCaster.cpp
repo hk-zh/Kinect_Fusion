@@ -4,14 +4,8 @@
 
 RayCaster::RayCaster(Volume& vol_) : vol(vol_) {}
 
-RayCaster::RayCaster(Volume& vol_, Frame& frame_) : vol(vol_), frame(frame_) {}
-
 void RayCaster::changeFrame(Frame& frame_) {
 	frame = frame_;
-}
-
-void RayCaster::changeVolume(Volume& vol_) {
-	vol = vol_;
 }
 
 // a function that writes down the invalid results
@@ -32,7 +26,7 @@ Frame& RayCaster::rayCast() {
 
 	int width = frame.getFrameWidth();
 	int height = frame.getFrameHeight();
-;
+
 	Vector3f ray_start, ray_dir, ray_current, ray_previous, ray_next;
 	Vector3i ray_current_int, ray_previous_int;
 
@@ -55,13 +49,10 @@ Frame& RayCaster::rayCast() {
 
 	for (int i = 0; i < height; i++) {
 		for (int j = 0; j < width; j++) {
-			//std::cout << i << " " << j << std::endl;
-
 			// starting point is the position of the camera (translation) in grid coordinates
 			ray_start = vol.worldToGrid(translation);
 
 			// calculate the direction vector as vector from camera position to the pixel(i, j)s world coordinates
-			index = i * width + j;
 
 			ray_next = Vector3f{ float(j), float(i), 1.0f };
 			ray_next = intrinsic_inverse * ray_next;
@@ -98,7 +89,6 @@ Frame& RayCaster::rayCast() {
 
                 // until reach the next grid
 				do {
-					//std::cout << ray_current << std::endl;
 					ray_current = ray.next();
 					ray_current_int = Volume::intCoords(ray_current);
 				} while (ray_previous_int == ray_current_int);
@@ -173,7 +163,6 @@ Frame& RayCaster::rayCast() {
                     } else {
                         output_colors_global ->emplace_back(Vector4uc {0,0,0,0});
                     }
-					//std::cout << ray_previous << std::endl << ray_current << std::endl << ray_dir << std::endl << sdf_1 << " " << sdf_2 << std::endl << p << std::endl;
 					v = vol.gridToWorld(p);
 					output_vertices_global->emplace_back(v);
 
@@ -190,7 +179,6 @@ Frame& RayCaster::rayCast() {
 	}
     std::cout << "output_vertices_global: " << output_vertices_global->size() << std::endl;
 	frame.mVerticesGlobal = output_vertices_global;
-	//frame.mNormalsGlobal = output_normals_global;
 	frame.mVertices = std::make_shared<std::vector<Vector3f>>(frame.transformPoints(*output_vertices_global, worldToCamera));
 	frame.computeNormalMap(width, height);
 	frame.mNormalsGlobal = std::make_shared<std::vector<Vector3f>>(frame.rotatePoints(frame.getNormalMap(), rotationMatrix));

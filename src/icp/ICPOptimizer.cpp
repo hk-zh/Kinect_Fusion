@@ -1,11 +1,12 @@
 //
-// Created by 周泓宽 on 17.12.21.
+// Created by Hongkuan Zhou on 17.12.21.
 //
 
 #include "ICPOptimizer.h"
 
-ICPOptimizer::ICPOptimizer() : m_bUsePointToPlaneConstraints{true},
-                                   m_nIterations{10},
+
+ICPOptimizer::ICPOptimizer(unsigned int  m_nIterations) : m_bUsePointToPlaneConstraints{true},
+                                   m_nIterations{m_nIterations},
                                    m_nearestNeighborSearch{std::make_unique<NearestNeighborSearchFlann>()}{}
 
 

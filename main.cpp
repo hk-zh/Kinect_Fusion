@@ -19,9 +19,16 @@
 #define MIN_POINT -0.7f, -0.7f, -0.5f
 #define MAX_POINT 0.7f, 0.7f, 1.0f
 #define RESOLUTION 256, 256, 256
+#define SAMPLE_FREQUENCY 1
 #define ICP_ITERATIONS 20
-#define USE_ICP_FROM_CLASS false
-#define SAMPLE_FREQUENCY 10
+#define ICP_VERSION 2
+
+/*
+ * We have two icp versions.
+ * Version 1: the version from Kinect-Fusion paper
+ * Version 2: the version using knn to find corresponding pairs
+ */
+
 
 
 
@@ -69,7 +76,6 @@ int main() {
     std::vector<Vector3f> normal_prediction = std::vector<Vector3f>(num_pixels);
 
     auto *linearIcp = new LinearICPOptimizer();
-    auto *ceresIcp = new CeresICPOptimizer();
     while (frameCount < MAX_FRAME_NUM && sensor.ProcessNextFrame()) {
         float *depthMap = sensor.GetDepth();
         float *depthMapFiltered = sensor.GetDepthFiltered();
@@ -80,8 +86,6 @@ int main() {
         Matrix4f trajectoryInv = sensor.GetTrajectory().inverse();
         int depthHeight = (int) sensor.GetDepthImageHeight();
         int depthWidth = (int) sensor.GetDepthImageWidth();
-
-        //std::cout << trajectory;
 
         curFrame =
                 Frame(depthMap, colorMap, depthIntrinsics, depthExtrinsics,
@@ -97,8 +101,8 @@ int main() {
             prevFrame = curFrame;
         } else {
             /* ==============  ICP: old version  ============== */
-            bool succ = true;
-            if (USE_ICP_FROM_CLASS) {
+            bool succ;
+            if (ICP_VERSION == 2) {
                 sample(vertex_current, curFrame.getVertexMapGlobal(), normal_current, curFrame.getNormalMapGlobal(), num_pixels);
                 sample(vertex_prediction, prevFrame.getVertexMapGlobal(), normal_prediction, prevFrame.getNormalMapGlobal(), num_pixels);
                 pose_cur = pose_prev;
@@ -150,20 +154,18 @@ int main() {
                 std::cout << "Marching Cubes started..." << std::endl;
                 SimpleMesh mesh;
 
-               bool* visitedVoxels = volume.getVisitedVoxels();
+//               bool* visitedVoxels = volume.getVisitedVoxels();
 
 //                for (auto &visitedVoxel : visitedVoxels) {
 //                    Vector3i voxelCoords = visitedVoxel.first;
 //                    ProcessVolumeCell(&volume, voxelCoords[0], voxelCoords[1], voxelCoords[2], 0.00f, &mesh);
 //                }
 
-                for (unsigned int x = 0; x < volume.getDimX() - 1; x++)
+                for (int x = 0; x < volume.getDimX() - 1; x++)
                 {
-                    //std::cerr << "Marching Cubes on slice " << x << " of " << volume.getDimX() << std::endl;
-
-                    for (unsigned int y = 0; y < volume.getDimY() - 1; y++)
+                    for (int y = 0; y < volume.getDimY() - 1; y++)
                     {
-                        for (unsigned int z = 0; z < volume.getDimZ() - 1; z++)
+                        for (int z = 0; z < volume.getDimZ() - 1; z++)
                         {
                             if (volume.voxelVisited(x, y, z)) {
                                 ProcessVolumeCell(&volume, x, y, z, 0.00f, &mesh);

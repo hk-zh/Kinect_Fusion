@@ -35,7 +35,7 @@ bool ICP::estimatePose(
         MatrixXf A = MatrixXf::Zero(4 * nPoints, 6);
         VectorXf b = VectorXf::Zero(4 * nPoints);
 
-        for (size_t i = 0; i < nPoints; i++) {
+        for (int i = 0; i < nPoints; i++) {
             auto pair = correspondenceIds[i];
             Eigen::Vector3f s = rotationEP * curFrame.getVertexGlobal(pair.second) + translationEP;
             Eigen::Vector3f d = prevFrame.getVertexGlobal(pair.first);
@@ -75,19 +75,19 @@ bool ICP::estimatePose(
                 AngleAxisf(gamma, Vector3f::UnitZ()).toRotationMatrix();
         Vector3f translation = x.tail(3);
 
-        Matrix4f curentPose = Matrix4f::Identity();
-        curentPose.block<3, 3>(0, 0) = rotation;
-        curentPose.block<3, 1>(0, 3) = translation;
-        estimatedPose = curentPose * estimatedPose;
+        Matrix4f currentPose = Matrix4f::Identity();
+        currentPose.block<3, 3>(0, 0) = rotation;
+        currentPose.block<3, 1>(0, 3) = translation;
+        estimatedPose = currentPose * estimatedPose;
     }
     return succ;
 }
 
-// Helper method to find corresponding points between curent frame and
+// Helper method to find corresponding points between current frame and
 // previous frame Reference Paper:
 // https://www.cvl.iis.u-tokyo.ac.jp/~oishi/Papers/Alignment/Blais_Registering_multiview_PAMI1995.pdf
-// Input: curent frame, previous frame, estimated pose of previous
-// frame Output: indices of corresponding vertices in curent and
+// Input: current frame, previous frame, estimated pose of previous
+// frame Output: indices of corresponding vertices in current and
 // previous frame Simple version: only take euclidean distance between
 // points into consideration without normals Advanced version: Euclidean
 // distance between points + difference in normal angles
@@ -118,8 +118,6 @@ std::vector<std::pair<size_t, size_t>> ICP::findIndicesOfCorrespondingPoints(
     for (size_t idx = 0; idx < prevFrameVertexMapGlobal.size(); idx++) {
         Eigen::Vector3f prevPointGlobal = prevFrameVertexMapGlobal[idx];
         Eigen::Vector3f prevNormalGlobal = prevFrameNormalMapGlobal[idx];
-        // std::cout << "Curent Point (Camera): " << curPoint[0] << " " <<
-        // curPoint[1] << " " << curPoint[2] << std::endl;
         if (prevPointGlobal.allFinite() && prevNormalGlobal.allFinite()) {
 
             Eigen::Vector3f prevPointCurCamera = rotationInv * prevPointGlobal + translationInv;
