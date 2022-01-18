@@ -17,7 +17,7 @@ class Frame {
 public:
     Frame();
     Frame(const Frame& other);
-    Frame(const float* depthMap, const BYTE* colorMap,
+    Frame(const float* depthMap, BYTE* colorMap,
         const Eigen::Matrix3f& depthIntrinsics,
         const Eigen::Matrix4f& depthExtrinsics,
         const Eigen::Matrix4f& trajectoryInv, int depthWidth, int depthHeight);
@@ -30,16 +30,16 @@ public:
     std::vector<Eigen::Vector3f>& getNormalMapGlobal();
     std::vector<Eigen::Vector3f>& getVertexMap();
     std::vector<Eigen::Vector3f>& getNormalMap();
-    int getFrameHeight();
-    int getFrameWidth();
+    int getFrameHeight() const;
+    int getFrameWidth() const;
     void setExtrinsicMatrix(const Eigen::Matrix4f& extrensicMatrix);
-    bool containsImgPoint(Eigen::Vector2i);
+    bool containsImgPoint(Eigen::Vector2i) const;
     Eigen::Vector3f projectPointIntoFrame(const Eigen::Vector3f& point);
     Eigen::Vector2i projectOntoImgPlane(const Eigen::Vector3f& point);
-    const Eigen::Matrix4f getExtrinsicMatrix();
-    const Eigen::Matrix3f getIntrinsicMatrix();
+    Eigen::Matrix4f getExtrinsicMatrix();
+    Eigen::Matrix3f getIntrinsicMatrix();
     const float* getDepthMap();
-    const BYTE* getColorMap();
+    BYTE* getColorMap();
     bool writeMesh(const std::string& filename, float edgeThreshold);
 
     //+++++++++++++++++++++++++++++++++++++++++++++
@@ -58,18 +58,18 @@ private:
         const Eigen::Matrix3f& depthIntrinsics, int depthWidth,
         int depthHeight);
     void computeNormalMap(int depthWidth, int depthHeight);
-    std::vector<Eigen::Vector3f> transformPoints(
+    static std::vector<Eigen::Vector3f> transformPoints(
         const std::vector<Eigen::Vector3f>& points,
         const Eigen::Matrix4f& transformation);
 
-    std::vector<Eigen::Vector3f> rotatePoints(
+    static std::vector<Eigen::Vector3f> rotatePoints(
         const std::vector<Eigen::Vector3f>& points,
         const Eigen::Matrix3f& rotation);
 
     int depthWidth;
     int depthHeight;
     const float* depthMap;
-    const BYTE* colorMap;
+    BYTE* colorMap;
     std::shared_ptr<std::vector<Eigen::Vector3f>> mVertices;
     std::shared_ptr<std::vector<Eigen::Vector3f>> mNormals;
     std::shared_ptr<std::vector<Eigen::Vector3f>> mVerticesGlobal;

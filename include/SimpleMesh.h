@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include "Eigen.h"
+#include "VirtualSensor.h"
 
 struct Vertex {
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW

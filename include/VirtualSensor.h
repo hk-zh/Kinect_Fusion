@@ -7,7 +7,8 @@
 
 #include "Eigen.h"
 #include "FreeImageHelper.h"
-
+#define M_SIGMA_S 5
+#define M_SIGMA_R 1.0f
 typedef unsigned char BYTE;
 
 // reads sensor files according to https://vision.in.tum.de/data/datasets/rgbd-dataset/file_formats
@@ -15,15 +16,13 @@ class VirtualSensor
 {
 public:
 
-	VirtualSensor() : m_currentIdx(-1), m_increment(1)
-	{
-
-	}
+	VirtualSensor() : m_currentIdx(-1), m_increment(1) {}
 
 	~VirtualSensor()
 	{
-		SAFE_DELETE_ARRAY(m_depthFrame);
-		SAFE_DELETE_ARRAY(m_colorFrame);
+		SAFE_DELETE_ARRAY(m_depthFrame)
+		SAFE_DELETE_ARRAY(m_colorFrame)
+        SAFE_DELETE_ARRAY(m_depthFrame_filtered)
 	}
 
 	bool Init(const std::string& datasetDir)
@@ -37,7 +36,7 @@ public:
 		// read tracking
 		if (!ReadTrajectoryFile(datasetDir + "groundtruth.txt", m_trajectory, m_trajectoryTimeStamps)) return false;
 
-		if (m_filenameDepthImages.size() != m_filenameColorImages.size()) return false;
+        //if (m_filenameDepthImages.size() != m_filenameColorImages.size()) return false;
 
 		// image resolutions
 		m_colorImageWidth = 640;
@@ -56,11 +55,11 @@ public:
 		m_depthExtrinsics.setIdentity();
 
 		m_depthFrame = new float[m_depthImageWidth*m_depthImageHeight];
+        m_depthFrame_filtered = new float[m_depthImageWidth*m_depthImageHeight];
 		for (unsigned int i = 0; i < m_depthImageWidth*m_depthImageHeight; ++i) m_depthFrame[i] = 0.5f;
 
 		m_colorFrame = new BYTE[4* m_colorImageWidth*m_colorImageHeight];
 		for (unsigned int i = 0; i < 4*m_colorImageWidth*m_colorImageHeight; ++i) m_colorFrame[i] = 255;
-
 
 		m_currentIdx = -1;
 		return true;
@@ -94,7 +93,7 @@ public:
 		// find transformation (simple nearest neighbor, linear search)
 		double timestamp = m_depthImagesTimeStamps[m_currentIdx];
 		double min = std::numeric_limits<double>::max();
-		int idx = 0;
+		unsigned idx = 0;
 		for (unsigned int i = 0; i < m_trajectory.size(); ++i)
 		{
 			double d = fabs(m_trajectoryTimeStamps[i] - timestamp);
@@ -105,12 +104,12 @@ public:
 			}
 		}
 		m_currentTrajectory = m_trajectory[idx];
-
+        filter_depth_map();
 
 		return true;
 	}
 
-	unsigned int GetCurrentFrameCnt()
+	unsigned int GetCurrentFrameCnt() const
 	{
 		return (unsigned int)m_currentIdx;
 	}
@@ -125,6 +124,11 @@ public:
 	{
 		return m_depthFrame;
 	}
+    // get current filtered depth data
+    float* GetDepthFiltered()
+    {
+        return m_depthFrame_filtered;
+    }
 
 	// color camera info
 	Eigen::Matrix3f GetColorIntrinsics()
@@ -137,12 +141,12 @@ public:
 		return m_colorExtrinsics;
 	}
 
-	unsigned int GetColorImageWidth()
+	unsigned int GetColorImageWidth() const
 	{
 		return m_colorImageWidth;
 	}
 
-	unsigned int GetColorImageHeight()
+	unsigned int GetColorImageHeight() const
 	{
 		return m_colorImageHeight;
 	}
@@ -158,12 +162,12 @@ public:
 		return m_depthExtrinsics;
 	}
 
-	unsigned int GetDepthImageWidth()
+	unsigned int GetDepthImageWidth() const
 	{
 		return m_colorImageWidth;
 	}
 
-	unsigned int GetDepthImageHeight()
+	unsigned int GetDepthImageHeight() const
 	{
 		return m_colorImageHeight;
 	}
@@ -174,9 +178,66 @@ public:
 		return m_currentTrajectory;
 	}
 
-private:
+    void filter_depth_map()
+    {
+        auto n_sigma = [](float x, float sigma)
+        {
+            //exp(−t^2 * σ^−2 )
+            return (float) exp(-pow(x, 2) * pow(sigma, -2));
+        };
 
-	bool ReadFileList(const std::string& filename, std::vector<std::string>& result, std::vector<double>& timestamps)
+        auto depth_locator = [&](float *base, size_t x, size_t y)
+        {
+            return base + x * m_depthImageWidth + y;
+        };
+
+        for (size_t ux = 0; ux < m_depthImageHeight; ++ux)
+        {
+            for (size_t uy = 0; uy < m_depthImageWidth; ++uy)
+            {
+                if (*depth_locator(m_depthFrame, ux, uy) == MINF)
+                {
+                    *depth_locator(m_depthFrame_filtered, ux, uy) = MINF;
+                    continue;
+                }
+
+                float sum_weights = 0;
+                float sum_values = 0;
+
+                size_t qx_st = ux > M_SIGMA_S ? ux - M_SIGMA_S : 0;
+                size_t qy_st = uy > M_SIGMA_S ? uy - M_SIGMA_S : 0;
+                size_t qx_ed = ux + M_SIGMA_S + 1 < m_depthImageHeight ? ux + M_SIGMA_S + 1 : m_depthImageHeight;
+                size_t qy_ed = uy + M_SIGMA_S + 1 < m_depthImageWidth ? uy + M_SIGMA_S + 1 : m_depthImageWidth;
+
+                for (size_t qx = qx_st; qx < qx_ed; ++qx)
+                {
+                    for (size_t qy = qy_st; qy < qy_ed; ++qy)
+                    {
+                        if (*depth_locator(m_depthFrame, qx, qy) == MINF)
+                        {
+                            continue;
+                        }
+
+                        float loc_diff_norm = (Vector2f(ux, uy) - Vector2f(qx, qy)).norm();
+                        float depth_diff_norm = abs(*depth_locator(m_depthFrame, ux, uy) - *depth_locator(m_depthFrame, qx, qy));
+                        if (depth_diff_norm > 3.0f * static_cast<float>(M_SIGMA_R))
+                        {
+                            continue;
+                        }
+                        float tmp_w = n_sigma(loc_diff_norm, static_cast<float>(M_SIGMA_S)) * n_sigma(depth_diff_norm, M_SIGMA_R);
+
+                        sum_weights += tmp_w;
+                        sum_values += tmp_w * (*depth_locator(m_depthFrame, qx, qy));
+                    }
+                }
+
+                *depth_locator(m_depthFrame_filtered, ux, uy) = sum_values / (sum_weights);
+            }
+        }
+    }
+protected:
+
+	static bool ReadFileList(const std::string& filename, std::vector<std::string>& result, std::vector<double>& timestamps)
 	{
 		std::ifstream fileDepthList(filename, std::ios::in);
 		if (!fileDepthList.is_open()) return false;
@@ -188,19 +249,20 @@ private:
 		std::getline(fileDepthList, dump);
 		while (fileDepthList.good())
 		{
+
 			double timestamp;
 			fileDepthList >> timestamp;
-			std::string filename;
-			fileDepthList >> filename;
-			if (filename == "") break;
+			std::string file_name;
+			fileDepthList >> file_name;
+			if (file_name.empty()) break;
 			timestamps.push_back(timestamp);
-			result.push_back(filename);
+			result.push_back(file_name);
 		}
 		fileDepthList.close();
 		return true;
 	}
 
-	bool ReadTrajectoryFile(const std::string& filename, std::vector<Eigen::Matrix4f>& result, std::vector<double>& timestamps)
+	static bool ReadTrajectoryFile(const std::string& filename, std::vector<Eigen::Matrix4f>& result, std::vector<double>& timestamps)
 	{
 		std::ifstream file(filename, std::ios::in);
 		if (!file.is_open()) return false;
@@ -244,6 +306,7 @@ private:
 
 	// frame data
 	float* m_depthFrame;
+	float* m_depthFrame_filtered;
 	BYTE* m_colorFrame;
 	Eigen::Matrix4f m_currentTrajectory;
 
@@ -261,14 +324,17 @@ private:
 
 	// base dir
 	std::string m_baseDir;
-	// filenamelist depth
+	// filenameList depth
 	std::vector<std::string> m_filenameDepthImages;
 	std::vector<double> m_depthImagesTimeStamps;
-	// filenamelist color
+	// filenameList color
 	std::vector<std::string> m_filenameColorImages;
 	std::vector<double> m_colorImagesTimeStamps;
 
 	// trajectory
 	std::vector<Eigen::Matrix4f> m_trajectory;
 	std::vector<double> m_trajectoryTimeStamps;
+	bool filter;
 };
+
+

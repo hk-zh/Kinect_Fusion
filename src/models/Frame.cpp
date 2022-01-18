@@ -1,9 +1,7 @@
 #include "Frame.h"
 
 #include <iostream>
-#include <fstream>
-
-Frame::Frame() {}
+Frame::Frame()= default;
 
 Frame::Frame(const Frame& other) {
     depthWidth = other.depthWidth;
@@ -18,7 +16,7 @@ Frame::Frame(const Frame& other) {
     intrinsicMatrix = other.intrinsicMatrix;
 }
 
-Frame::Frame(const float* depthMap, const BYTE* colorMap,
+Frame::Frame(const float* depthMap, BYTE* colorMap,
     const Eigen::Matrix3f& depthIntrinsics,
     const Eigen::Matrix4f& depthExtrinsics,
     const Eigen::Matrix4f& trajectoryInv,
@@ -44,14 +42,14 @@ Eigen::Vector3f Frame::getNormal(size_t idx) const { return mNormals->at(idx); }
 
 int Frame::getVertexCount() const { return mVertices->size(); }
 
-bool Frame::containsImgPoint(Eigen::Vector2i imgPoint) {
+bool Frame::containsImgPoint(Eigen::Vector2i imgPoint) const {
     return imgPoint[0] >= 0 && imgPoint[0] < depthWidth && imgPoint[1] >= 0 &&
         imgPoint[1] < depthHeight;
 }
 
-int Frame::getFrameHeight() { return depthHeight; }
+int Frame::getFrameHeight() const { return depthHeight; }
 
-int Frame::getFrameWidth() { return depthWidth; }
+int Frame::getFrameWidth() const { return depthWidth; }
 
 std::vector<Eigen::Vector3f>& Frame::getVertexMap() { return *mVertices; }
 std::vector<Eigen::Vector3f>& Frame::getNormalMap() { return *mNormals; }
@@ -172,17 +170,17 @@ void Frame::computeNormalMap(int depthWidth, int depthHeight) {
     }
 }
 
-const Eigen::Matrix4f Frame::getExtrinsicMatrix() {
+Eigen::Matrix4f Frame::getExtrinsicMatrix() {
     return extrinsicMatrix;
 }
-const Eigen::Matrix3f Frame::getIntrinsicMatrix() {
+Eigen::Matrix3f Frame::getIntrinsicMatrix() {
     return intrinsicMatrix;
 }
 
 const float* Frame::getDepthMap() {
     return depthMap;
 }
-const BYTE* Frame::getColorMap() {
+BYTE* Frame::getColorMap() {
     return colorMap;
 }
 
@@ -196,12 +194,12 @@ bool Frame::writeMesh(const std::string& filename, float edgeThreshold) {
     // Create triangles
     std::vector<Vector3i> mTriangles;
     mTriangles.reserve((depthHeight - 1) * (depthWidth - 1) * 2);
-    for (unsigned int i = 0; i < depthHeight - 1; i++) {
-        for (unsigned int j = 0; j < depthWidth - 1; j++) {
-            unsigned int i0 = i * depthWidth + j;
-            unsigned int i1 = (i + 1) * depthWidth + j;
-            unsigned int i2 = i * depthWidth + j + 1;
-            unsigned int i3 = (i + 1) * depthWidth + j + 1;
+    for (int i = 0; i < depthHeight - 1; i++) {
+        for (int j = 0; j < depthWidth - 1; j++) {
+            int i0 = i * depthWidth + j;
+            int i1 = (i + 1) * depthWidth + j;
+            int i2 = i * depthWidth + j + 1;
+            int i3 = (i + 1) * depthWidth + j + 1;
 
             bool valid0 = mVerticesGlobal->at(i0).allFinite();
             bool valid1 = mVerticesGlobal->at(i1).allFinite();
@@ -210,11 +208,8 @@ bool Frame::writeMesh(const std::string& filename, float edgeThreshold) {
 
             if (valid0 && valid1 && valid2) {
                 float d0 = (mVerticesGlobal->at(i0) - mVerticesGlobal->at(i1)).norm();
-                //std::cout << d0 << std::endl;
                 float d1 = (mVerticesGlobal->at(i0) - mVerticesGlobal->at(i2)).norm();
-                //std::cout << d1 << std::endl;
                 float d2 = (mVerticesGlobal->at(i1) - mVerticesGlobal->at(i2)).norm();
-                //std::cout << d2 << std::endl;
                 if (edgeThreshold > d0 && edgeThreshold > d1 && edgeThreshold > d2)
                     mTriangles.emplace_back(Vector3i(i0, i1, i2));
             }
@@ -244,8 +239,8 @@ bool Frame::writeMesh(const std::string& filename, float edgeThreshold) {
     }
 
     // Save faces.
-    for (unsigned int i = 0; i < mTriangles.size(); i++) {
-        outFile << "3 " << mTriangles[i][0] << " " << mTriangles[i][1] << " " << mTriangles[i][2] << std::endl;
+    for (auto & mTriangle : mTriangles) {
+        outFile << "3 " << mTriangle[0] << " " << mTriangle[1] << " " << mTriangle[2] << std::endl;
     }
 
     // Close file.
@@ -280,5 +275,5 @@ Eigen::Vector2i Frame::perspectiveProjection(
 
     projected /= projected[2];
 
-    return Eigen::Vector2i((int)round(projected.x()), (int)round(projected.y()));
+    return {(int)round(projected.x()), (int)round(projected.y())};
 }
