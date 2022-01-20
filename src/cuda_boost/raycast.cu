@@ -58,9 +58,9 @@ __device__ inline Vector3f gridToWorld(Vector3f& p, Vector3f& min, Vector3f& max
 
 __device__ 	bool isInterpolationPossible(Vector3f& point, uint dx, uint dy, uint dz) {
     return!(
-                    point[0] > dx - 3 ||
-                    point[1] > dy - 3 ||
-                    point[2] > dz - 3 ||
+                    point[0] > (float)dx - 3 ||
+                    point[1] > (float)dy - 3 ||
+                    point[2] > (float)dz - 3 ||
                     point[0] < 2 ||
                     point[1] < 2 ||
                     point[2] < 2
@@ -80,9 +80,9 @@ __device__ 	inline Vector3i intCoords(const Vector3f& p) {
 __device__ 	bool isPointInVolume(Vector3f& point, uint dx, uint dy, uint dz){
     return
             !(
-                    point[0] > dx - 1 ||
-                    point[1] > dy - 1 ||
-                    point[2] > dz - 1 ||
+                    point[0] > (float)dx - 1 ||
+                    point[1] > (float)dy - 1 ||
+                    point[2] > (float)dz - 1 ||
                     point[0] < 0 ||
                     point[1] < 0 ||
                     point[2] < 0
@@ -93,7 +93,7 @@ __device__ float trilinearInterpolation(const Vector3f& p, Voxel* voxels, uint d
     Vector3i start = intCoords(p);
     float c000, c001, c010, c011, c100, c101, c110, c111;
 
-    c000 = voxels[(start[0] + 0)*dy*dz + (start[1] + 0)*dz + (start[2] + 0)].getValue();
+    c000 = voxels[(start[0] + 0)*dy*dz + ( start[1] + 0)*dz + ( start[2] + 0)].getValue();
     c100 = voxels[(start[0] + 1)*dy*dz + ( start[1] + 0)*dz + ( start[2] + 0)].getValue();
     c001 = voxels[(start[0] + 0)*dy*dz + ( start[1] + 0)*dz + ( start[2] + 1)].getValue();
     c101 = voxels[(start[0] + 1)*dy*dz + ( start[1] + 0)*dz + ( start[2] + 1)].getValue();
@@ -116,9 +116,9 @@ __device__ float trilinearInterpolation(const Vector3f& p, Voxel* voxels, uint d
 
     float xd, yd, zd;
 
-    xd = p[0] - start[0]; //(p[0] - start[0]) / (start[0] + 1 - start[0]);
-    yd = p[1] - start[1]; //(p[1] - start[1]) / (start[1] + 1 - start[1]);
-    zd = p[2] - start[2]; //(p[1] - start[2]) / (start[2] + 1 - start[2]);
+    xd = p[0] - (float)start[0]; //(p[0] - start[0]) / (start[0] + 1 - start[0]);
+    yd = p[1] - (float)start[1]; //(p[1] - start[1]) / (start[1] + 1 - start[1]);
+    zd = p[2] - (float)start[2]; //(p[1] - start[2]) / (start[2] + 1 - start[2]);
 
     float c00, c01, c10, c11;
 
@@ -161,7 +161,7 @@ __device__ void set_visited(Vector3i& voxCoords, uint dx, uint dy, uint dz, bool
     starting_points[0] = (Vector3i{ p_int[0] + 0, p_int[1] - 1, p_int[2] - 1 });
     starting_points[0] = (Vector3i{ p_int[0] - 1, p_int[1] - 1, p_int[2] - 1 });
 
-    for (auto p_int : starting_points) {
+    for (Matrix<int, 3, 1> p_int : starting_points) {
         setVisitedSingle( p_int[0] + 0, p_int[1] + 0, p_int[2] + 0, dx, dy, dz, visitedVoxels);
         setVisitedSingle( p_int[0] + 1, p_int[1] + 0, p_int[2] + 0, dx, dy, dz, visitedVoxels);
         setVisitedSingle( p_int[0] + 0, p_int[1] + 1, p_int[2] + 0, dx, dy, dz, visitedVoxels);
@@ -197,9 +197,9 @@ __global__ void raycast_parallel(int width, int height, uint dx, uint dy, uint d
 
 
     // Calculate the column index of the Pd element, denote by x
-    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    uint j = blockIdx.y * blockDim.y + threadIdx.y;
     // Calculate the row index of the Pd element, denote by y
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    uint i = blockIdx.x * blockDim.x + threadIdx.x;
     uint index = i * width + j;
 
     if (i >= height || j >= width)
@@ -268,7 +268,7 @@ __global__ void raycast_parallel(int width, int height, uint dx, uint dy, uint d
         if (!isInterpolationPossible(ray_previous, dx, dy, dz) || !isInterpolationPossible(ray_current, dx, dy, dz)) {
             output_vertices_global_cuda[index] = Vector3f(-INFINITY, -INFINITY, -INFINITY);
             output_colors_global_cuda[index]= Vector4uc(0, 0, 0, 0);
-            return;
+            break;
         } else if (voxels[ray_previous_int.x()*dy*dz + ray_previous_int.y()*dz + ray_previous_int.z()].getValue() == 0 ) {
             v = gridToWorld(ray_previous, min, max, ddx, ddy, ddz);
             output_vertices_global_cuda[index] = v;
@@ -301,7 +301,7 @@ __global__ void raycast_parallel(int width, int height, uint dx, uint dy, uint d
             if (sdf_1 == INFINITY || sdf_2 == INFINITY || sdf_2 == sdf_1) {
                 output_vertices_global_cuda[index] = Vector3f(-INFINITY, -INFINITY, -INFINITY);
                 output_colors_global_cuda[index]= Vector4uc(0, 0, 0, 0);
-                return;
+                break;
             }
 
             p = ray_previous - (ray_dir * sdf_1) / (sdf_2 - sdf_1);
@@ -309,6 +309,7 @@ __global__ void raycast_parallel(int width, int height, uint dx, uint dy, uint d
             if (!isInterpolationPossible(p, dx, dy, dz)) {
                 output_vertices_global_cuda[index] = Vector3f(-INFINITY, -INFINITY, -INFINITY);
                 output_colors_global_cuda[index]= Vector4uc(0, 0, 0, 0);
+                break;
             }
             if (voxels[ray_previous_int.x()*dy*dz + ray_previous_int.y()*dz + ray_previous_int.z()].isValidColor()
                 && voxels[ray_current_int.x()*dy*dz + ray_current_int.y()*dz + ray_current_int.z()].isValidColor()) {
@@ -479,7 +480,7 @@ extern "C" void start_raycast(Frame& frame, Volume& volume){
 
     cudaFree(vol_cuda);
     cudaFree(output_vertices_global_cuda);
-    cudaFree(output_vertices_global_cuda);
+    cudaFree(output_colors_global_cuda);
     cudaFree(visitedVoxels);
 
 }
