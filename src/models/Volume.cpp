@@ -109,6 +109,7 @@ float Volume::trilinearInterpolation(const Vector3f& p) const {
 	yd = p[1] - start[1]; //(p[1] - start[1]) / (start[1] + 1 - start[1]);
 	zd = p[2] - start[2]; //(p[1] - start[2]) / (start[2] + 1 - start[2]);
 
+
 	float c00, c01, c10, c11;
 
 	c00 = c000 * (1 - xd) + c100 * xd;

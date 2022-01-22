@@ -15,14 +15,15 @@
 #define DISTANCE_THRESHOLD 0.05
 #define EDGE_THRESHOLD 0.02
 #define ANGLE_THRESHOLD 1.05
-#define MAX_FRAME_NUM 2000
-#define MIN_POINT -0.7f, -0.7f, -0.5f
-#define MAX_POINT 0.7f, 0.7f, 1.0f
-#define RESOLUTION 256, 256, 256
-#define SAMPLE_FREQUENCY 1
-#define ICP_ITERATIONS 20
-#define ICP_VERSION 2
-
+#define MAX_FRAME_NUM 1000
+#define MIN_POINT -0.7f, -0.5f, -0.5f
+#define MAX_POINT 0.7f, 0.5f, 1.2f
+#define RESOLUTION 512, 512, 512
+#define SAMPLE_FREQUENCY 10
+#define ICP_ITERATIONS 30
+#define ICP_VERSION 1
+#define OUTPUT_FILE "../output_plant_512/"
+#define INPUT_FILE "../data/rgbd_dataset_freiburg1_plant/"
 /*
  * We have two icp versions.
  * Version 1: the version from Kinect-Fusion paper
@@ -47,10 +48,11 @@ void sample(std::vector<Vector3f> &a1, std::vector<Vector3f> &b1, std::vector<Ve
 
 int main() {
     // Make sure this path points to the data folder
-    std::string filenameIn = "../data/rgbd_dataset_freiburg1_plant/";
-    std::string filenameBaseOut = std::string("../output_plant_128/mesh_");
-    std::string filenameBaseOutMC = std::string("../output_plant_128/MCmesh_");
-
+    std::string filenameIn = INPUT_FILE;
+    std::string filenameBaseOut = std::string(OUTPUT_FILE) + "mesh_";
+    std::string filenameBaseOutMC = std::string(OUTPUT_FILE) + "MCmesh_";
+    std::string filenameBaseOutNormal = std::string(OUTPUT_FILE) + "normal_";
+    std::string filenameBaseOutColor = std::string(OUTPUT_FILE) + "color_";
     // load video
     std::cout << "Initialize virtual sensor..." << std::endl;
     VirtualSensor sensor;
@@ -72,10 +74,11 @@ int main() {
     unsigned int num_pixels = sensor.GetDepthImageWidth() * sensor.GetDepthImageHeight();
     std::vector<Vector3f> vertex_current = std::vector<Vector3f>(num_pixels);
     std::vector<Vector3f> normal_current = std::vector<Vector3f>(num_pixels);
-    std::vector<Vector3f> vertex_prediction = std::vector<Vector3f>(num_pixels);
-    std::vector<Vector3f> normal_prediction = std::vector<Vector3f>(num_pixels);
+    std::vector<Vector3f> vertex_previous = std::vector<Vector3f>(num_pixels);
+    std::vector<Vector3f> normal_previous = std::vector<Vector3f>(num_pixels);
 
-    auto *linearIcp = new LinearICPOptimizer();
+    auto *linearIcp = new LinearICPOptimizer(ICP_ITERATIONS);
+    auto *ceresICP = new CeresICPOptimizer(ICP_ITERATIONS);
     while (frameCount < MAX_FRAME_NUM && sensor.ProcessNextFrame()) {
         float *depthMap = sensor.GetDepth();
         float *depthMapFiltered = sensor.GetDepthFiltered();
@@ -104,10 +107,10 @@ int main() {
             bool succ;
             if (ICP_VERSION == 2) {
                 sample(vertex_current, curFrame.getVertexMapGlobal(), normal_current, curFrame.getNormalMapGlobal(), num_pixels);
-                sample(vertex_prediction, prevFrame.getVertexMapGlobal(), normal_prediction, prevFrame.getNormalMapGlobal(), num_pixels);
+                sample(vertex_previous, prevFrame.getVertexMapGlobal(), normal_previous, prevFrame.getNormalMapGlobal(), num_pixels);
                 pose_cur = pose_prev;
-                succ = linearIcp -> estimatePose(
-                        vertex_current, normal_current, vertex_prediction,normal_prediction, pose_cur
+                succ = ceresICP -> estimatePose(
+                        vertex_previous, normal_previous, vertex_current,normal_current, pose_cur
                 );
             } else {
                 ICP icp(prevFrame, curFrame, DISTANCE_THRESHOLD, ANGLE_THRESHOLD);
@@ -137,6 +140,10 @@ int main() {
 
 
             // output
+            std::stringstream ss;
+            ss << filenameBaseOutNormal << frameCount << ".png";
+            FreeImageB::SaveImageToFile(curFrame.getNormalMap(), ss.str(),sensor.GetColorImageWidth(),  sensor.GetColorImageHeight(), false);
+
             if (frameCount % 20 == 1) {
                 std::stringstream ss;
                 ss << filenameBaseOut << frameCount << ".off";

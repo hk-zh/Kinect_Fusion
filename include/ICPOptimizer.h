@@ -203,7 +203,7 @@ public:
     void setMatchingMaxDistance(float maxDistance);
     void usePointToPlaneConstraints(bool bUsePointToPlaneConstraints);
     void setNbOfIterations(unsigned nIterations);
-    virtual bool estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current, std::vector<Vector3f> vertex_prediction, std::vector<Vector3f> normal_prediction, Matrix4f &initialPose);
+    virtual bool estimatePose(std::vector<Vector3f> &vertex_previous, std::vector<Vector3f> &normal_previous, std::vector<Vector3f> &vertex_current, std::vector<Vector3f> &normal_current, Matrix4f &initialPose);
     ~ICPOptimizer();
 protected:
     bool m_bUsePointToPlaneConstraints;
@@ -220,7 +220,7 @@ class CeresICPOptimizer : public ICPOptimizer
 {
 public:
     explicit CeresICPOptimizer(unsigned int m_nIterations = 20);
-    bool estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current, std::vector<Vector3f> vertex_prediction, std::vector<Vector3f> normal_prediction, Matrix4f &initialPose ) override;
+    bool estimatePose(std::vector<Vector3f> &vertex_previous, std::vector<Vector3f> &normal_previous, std::vector<Vector3f> &vertex_current, std::vector<Vector3f> &normal_current, Matrix4f &initialPose) override;
     ~CeresICPOptimizer();
 
 private:
@@ -234,7 +234,7 @@ class LinearICPOptimizer : public ICPOptimizer
 public:
     explicit LinearICPOptimizer(unsigned int m_nIterations = 20);
     ~LinearICPOptimizer();
-    bool estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current, std::vector<Vector3f> vertex_prediction, std::vector<Vector3f> normal_prediction, Matrix4f &initialPose) override;
+    bool estimatePose(std::vector<Vector3f> &vertex_previous, std::vector<Vector3f> &normal_previous, std::vector<Vector3f> &vertex_current, std::vector<Vector3f> &normal_current, Matrix4f &initialPose) override;
 
 private:
     static Matrix4f estimatePosePointToPoint(const std::vector<Vector3f> &sourcePoints, const std::vector<Vector3f> &targetPoints);

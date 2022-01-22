@@ -8,12 +8,12 @@ CeresICPOptimizer::CeresICPOptimizer(unsigned int m_nIterations) : ICPOptimizer(
 
 }
 
-bool CeresICPOptimizer::estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current,
-                                         std::vector<Vector3f> vertex_prediction,
-                                         std::vector<Vector3f> normal_prediction, Matrix4f &initialPose)
+bool CeresICPOptimizer::estimatePose(std::vector<Vector3f> &vertex_previous, std::vector<Vector3f> &normal_previous,
+                                         std::vector<Vector3f> &vertex_current,
+                                         std::vector<Vector3f> &normal_current, Matrix4f &initialPose)
 {
     // Build the index of the FLANN tree (for fast nearest neighbor lookup).
-    m_nearestNeighborSearch->buildIndex(vertex_current);
+    m_nearestNeighborSearch->buildIndex(vertex_previous);
 
     // The initial estimate can be given as an argument.
     Matrix4f estimatedPose = initialPose;
@@ -30,11 +30,11 @@ bool CeresICPOptimizer::estimatePose(std::vector<Vector3f> vertex_current, std::
         std::cout << "Matching points ..." << std::endl;
         clock_t begin = clock();
 
-        auto transformedPoints = transformPoints(vertex_prediction, estimatedPose);
-        auto transformedNormals = transformNormals(normal_prediction, estimatedPose);
+        auto transformedPoints = transformPoints(vertex_current, estimatedPose);
+        auto transformedNormals = transformNormals(normal_current, estimatedPose);
 
         auto matches = m_nearestNeighborSearch->queryMatches(transformedPoints);
-        pruneCorrespondences(transformedNormals, normal_current, matches);
+        pruneCorrespondences(transformedNormals, normal_previous, matches);
         if (matches.size() < MINIMUM_MATCHING_NUMBER) {
             success = false;
             break;
@@ -45,7 +45,7 @@ bool CeresICPOptimizer::estimatePose(std::vector<Vector3f> vertex_current, std::
 
         // Prepare point-to-point and point-to-plane constraints.
         ceres::Problem problem;
-        prepareConstraints(transformedPoints, vertex_current, normal_current, matches, poseIncrement, problem);
+        prepareConstraints(transformedPoints, vertex_previous, normal_previous, matches, poseIncrement, problem);
 
         // Configure options for the solver.
         ceres::Solver::Options options;

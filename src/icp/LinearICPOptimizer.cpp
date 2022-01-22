@@ -13,11 +13,11 @@ LinearICPOptimizer::~LinearICPOptimizer()
     std::cout << "LinearICPOptimizer deleted!" << std::endl;
 }
 
-bool LinearICPOptimizer::estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current,
-                                          std::vector<Vector3f> vertex_prediction,
-                                          std::vector<Vector3f> normal_prediction, Matrix4f &initialPose) {
+bool LinearICPOptimizer::estimatePose(std::vector<Vector3f> &vertex_previous, std::vector<Vector3f> &normal_previous,
+                                          std::vector<Vector3f> &vertex_current,
+                                          std::vector<Vector3f> &normal_current, Matrix4f &initialPose) {
     // Build the index of the FLANN tree (for fast nearest neighbor lookup).
-    m_nearestNeighborSearch->buildIndex(vertex_current);
+    m_nearestNeighborSearch->buildIndex(vertex_previous);
 
     // The initial estimate can be given as an argument.
     Matrix4f estimatedPose = initialPose;
@@ -28,11 +28,11 @@ bool LinearICPOptimizer::estimatePose(std::vector<Vector3f> vertex_current, std:
         std::cout << "Matching points ..." << std::endl;
         clock_t begin = clock();
 
-        std::vector<Vector3f> transformedPoints = transformPoints(vertex_prediction, estimatedPose);
-        std::vector<Vector3f> transformedNormals = transformNormals(normal_prediction, estimatedPose);
+        std::vector<Vector3f> transformedPoints = transformPoints(vertex_current, estimatedPose);
+        std::vector<Vector3f> transformedNormals = transformNormals(normal_current, estimatedPose);
 
         auto matches = m_nearestNeighborSearch->queryMatches(transformedPoints);
-        pruneCorrespondences(transformedNormals, normal_current, matches);
+        pruneCorrespondences(transformedNormals, normal_previous, matches);
 
         clock_t end = clock();
         double elapsedSecs = double(end - begin) / CLOCKS_PER_SEC;
@@ -49,7 +49,7 @@ bool LinearICPOptimizer::estimatePose(std::vector<Vector3f> vertex_current, std:
             if (match.idx >= 0)
             {
                 sourcePoints.push_back(transformedPoints[j]);
-                targetPoints.push_back(vertex_current[match.idx]);
+                targetPoints.push_back(vertex_previous[match.idx]);
             }
         }
         if (sourcePoints.size() < MINIMUM_MATCHING_NUMBER) {
@@ -61,7 +61,7 @@ bool LinearICPOptimizer::estimatePose(std::vector<Vector3f> vertex_current, std:
         // Estimate the new pose
         if (m_bUsePointToPlaneConstraints)
         {
-            estimatedPose = estimatePosePointToPlane(sourcePoints, targetPoints, normal_current) * estimatedPose;
+            estimatedPose = estimatePosePointToPlane(sourcePoints, targetPoints, normal_previous) * estimatedPose;
         }
         else
         {
@@ -70,7 +70,7 @@ bool LinearICPOptimizer::estimatePose(std::vector<Vector3f> vertex_current, std:
 
         std::cout << "Optimization iteration done." << std::endl;
     }
-    initialPose = estimatedPose.inverse();
+    initialPose = estimatedPose;
     return success;
 }
 
@@ -123,8 +123,7 @@ Matrix4f LinearICPOptimizer::estimatePosePointToPlane(const std::vector<Vector3f
 
     // Solve the system
     VectorXf x(6);
-    JacobiSVD<MatrixXf> svd(A, ComputeThinU | ComputeThinV);
-    x = svd.solve(b);
+    x = A.bdcSvd(ComputeThinU | ComputeThinV).solve(b);
     float alpha = x(0), beta = x(1), gamma = x(2);
 
     // Build the pose matrix

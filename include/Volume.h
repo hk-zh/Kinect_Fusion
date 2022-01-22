@@ -107,9 +107,9 @@ public:
 	inline static Vector3i intCoords(const Vector3f& p) {
 		Vector3i coord{ 0, 0, 0 };
 
-		coord[0] = int(p[0]);
-		coord[1] = int(p[1]);
-		coord[2] = int(p[2]);
+		coord[0] = int(floor(p[0]));
+		coord[1] = int(floor(p[1]));
+		coord[2] = int(floor(p[2]));
 
 		return coord;
 	}

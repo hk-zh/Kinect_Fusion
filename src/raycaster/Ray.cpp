@@ -1,6 +1,8 @@
 #include "Ray.h"
 #include "Eigen.h"
 
+#define LENGTH 0.6
+// everytime forward LENGTH grid
 Ray::Ray() {}
 
 Ray::Ray(Vector3f& start_, Vector3f& direction_) : start(start_), direction(direction_) {
@@ -10,7 +12,7 @@ Ray::Ray(Vector3f& start_, Vector3f& direction_) : start(start_), direction(dire
 
 Vector3f& Ray::next() {
 	previousPoint = currentPoint;
-	currentPoint += direction;
+	currentPoint += direction * LENGTH;
 
 	return currentPoint;
 }
@@ -35,4 +37,8 @@ Vector3f& Ray::getCurrentPosition() {
 }
 Vector3f& Ray::getPreviousPosition() {
 	return previousPoint;
+}
+
+double Ray::forwardLength() {
+    return LENGTH;
 }

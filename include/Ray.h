@@ -18,6 +18,7 @@ public:
 
 	Vector3f& next();
 
+	double forwardLength();
 	Vector3f& getStartingPoint();
 	void setStartingPoint(Vector3f& start_);
 

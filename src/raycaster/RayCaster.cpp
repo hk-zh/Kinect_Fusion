@@ -72,7 +72,7 @@ Frame& RayCaster::rayCast() {
 			ray_current = ray_start;
             // forward until the ray in range
             int cnt = 0;
-            while (!vol.isInterpolationPossible(ray_current) && cnt++ < 1000) {
+            while (!vol.isInterpolationPossible(ray_current) && cnt++ < 2000) {
                 ray_current = ray.next();
             }
             ray_current_int = Volume::intCoords(ray_current);
@@ -88,9 +88,11 @@ Frame& RayCaster::rayCast() {
 				ray_previous_int = ray_current_int;
 
                 // until reach the next grid
+                int k = 0;
 				do {
 					ray_current = ray.next();
 					ray_current_int = Volume::intCoords(ray_current);
+					k++;
 				} while (ray_previous_int == ray_current_int);
 
 					
@@ -104,7 +106,7 @@ Frame& RayCaster::rayCast() {
 					if (!vol.voxelVisited(ray_previous)) {
 						vol.setVisited(ray_previous_int);
 					}
-						
+
 					break;
 				} else if (vol.get(ray_current_int).getValue() == 0) {
                     v = vol.gridToWorld(ray_current);
@@ -118,19 +120,22 @@ Frame& RayCaster::rayCast() {
                     break;
                 } else if (
 					vol.get(ray_previous_int).getValue() != std::numeric_limits<float>::max() && 
-					vol.get(ray_previous_int).getValue() > 0 &&  
+					vol.get(ray_previous_int).getValue() > 0  &&
 					vol.get(ray_current_int).getValue() != std::numeric_limits<float>::max() &&
 					vol.get(ray_current_int).getValue() < 0
 				) {
 					sdf_1 = vol.trilinearInterpolation(ray_previous);
 					sdf_2 = vol.trilinearInterpolation(ray_current);
 
-					if (sdf_1 == std::numeric_limits<float>::max() || sdf_2 == std::numeric_limits<float>::max() || sdf_2 == sdf_1) {
-						mistake(*output_vertices_global, *output_colors_global);
-						break;
+//					sdf_1 = vol.get(ray_previous_int).getValue();
+//					sdf_2 = vol.get(ray_current_int).getValue();
+
+					if (sdf_1 == std::numeric_limits<float>::max() || sdf_2 == std::numeric_limits<float>::max()) {
+                        mistake(*output_vertices_global, *output_colors_global);
+                        break;
 					}
 
-					p = ray_previous - (ray_dir * sdf_1) / (sdf_2 - sdf_1);
+					p = ray_previous - (ray_dir.normalized() * ray.forwardLength() * k * sdf_1) / (sdf_2 - sdf_1);
 
 					if (!vol.isInterpolationPossible(p)) {
 						mistake(*output_vertices_global, *output_colors_global);

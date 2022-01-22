@@ -84,8 +84,9 @@ void ICPOptimizer::pruneCorrespondences(const std::vector<Vector3f> &sourceNorma
     }
 }
 
-bool ICPOptimizer::estimatePose(std::vector<Vector3f> vertex_current, std::vector<Vector3f> normal_current,
-                                std::vector<Vector3f> vertex_prediction, std::vector<Vector3f> normal_prediction,
+
+bool ICPOptimizer::estimatePose(std::vector<Vector3f> &vertex_previous, std::vector<Vector3f> &normal_previous,
+                                std::vector<Vector3f> &vertex_current, std::vector<Vector3f> &normal_current,
                                 Matrix4f &initialPose) {
     return false;
 }
